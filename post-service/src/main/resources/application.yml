@@ -1,0 +1,67 @@
+server:
+  port: 8082
+  # This helps Swagger/OpenAPI generate correct links once the service sits behind an API gateway.
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: post-service
+  profiles:
+    active: mysql
+  cache:
+    type: ${SPRING_CACHE_TYPE:simple}
+    redis:
+      time-to-live: ${POST_CACHE_TTL:PT5M}
+      cache-null-values: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: true
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: false
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    display-request-duration: true
+
+app:
+  services:
+    search-base-url: ${SEARCH_SERVICE_BASE_URL:http://localhost:8088}
+  events:
+    exchange: ${APP_EVENTS_EXCHANGE:connectsphere.events}
+    search-routing-key: ${APP_SEARCH_ROUTING_KEY:search.post.index}
+
+logging:
+  level:
+    org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver: error
+    org.springframework.web.context.request.async: error
