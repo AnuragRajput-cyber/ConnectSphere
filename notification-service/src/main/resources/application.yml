@@ -1,0 +1,63 @@
+server:
+  port: 8086
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: notification-service
+  profiles:
+    active: mysql
+  cache:
+    type: ${SPRING_CACHE_TYPE:simple}
+    redis:
+      time-to-live: ${NOTIFICATION_CACHE_TTL:PT10M}
+      cache-null-values: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver: error
+    org.springframework.web.context.request.async: error
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: false
+  instance:
+    prefer-ip-address: true
+
+app:
+  events:
+    exchange: ${APP_EVENTS_EXCHANGE:connectsphere.events}
+    notification-queue: ${APP_NOTIFICATION_QUEUE:connectsphere.notification.social}
+    notification-routing-key: ${APP_NOTIFICATION_ROUTING_KEY:notification.social}
