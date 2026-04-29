@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConnectSphere Auth Service - Detailed Explanation</title>
+    <style>
+        :root {
+            --ink: #182230;
+            --muted: #516173;
+            --line: #d7dee7;
+            --panel: #f6f8fb;
+            --accent: #145da0;
+            --accent-soft: #eaf3fb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Calibri, Arial, sans-serif;
+            color: var(--ink);
+            line-height: 1.55;
+            background: #ffffff;
+        }
+
+        .page {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 40px 48px 72px;
+        }
+
+        h1, h2, h3, h4 {
+            color: #102033;
+            margin-top: 0;
+        }
+
+        h1 {
+            font-size: 30px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 22px;
+            margin-top: 34px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--line);
+        }
+
+        h3 {
+            font-size: 18px;
+            margin-top: 24px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        .lead {
+            font-size: 16px;
+            color: var(--muted);
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 24px 0 28px;
+        }
+
+        .meta-card,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .meta-card strong {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: var(--accent-soft);
+        }
+
+        code, pre {
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #0f1720;
+            color: #eaf0f7;
+            padding: 14px 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        ul {
+            margin: 10px 0 10px 22px;
+        }
+
+        li {
+            margin: 6px 0;
+        }
+
+        .note {
+            background: #fff8e8;
+            border-left: 4px solid #e0ad27;
+            padding: 12px 14px;
+            margin: 16px 0;
+        }
+
+        .flow {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        .flow .panel h4 {
+            margin-bottom: 8px;
+        }
+
+        .small {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .page {
+                padding: 24px 28px 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>ConnectSphere Auth Service</h1>
+    <p class="lead">
+        Detailed explanation of how the <code>auth-service</code> works, how its classes connect to each other,
+        how requests move through the system, and how security, tokens, persistence, validation, and error handling
+        fit together in one complete flow.
+    </p>
+
+    <div class="meta">
+        <div class="meta-card">
+            <strong>Module</strong>
+            <span><code>com.connectsphere:auth-service</code></span>
+        </div>
+        <div class="meta-card">
+            <strong>Framework</strong>
+            <span>Spring Boot 3.3.5, Spring Security, Spring Data JPA</span>
+        </div>
+        <div class="meta-card">
+            <strong>Runtime Goal</strong>
+            <span>User identity, login, JWT lifecycle, profile operations, search, and account state management</span>
+        </div>
+    </div>
+
+    <h2>1. Purpose of the Service</h2>
+    <p>
+        The auth service is the identity and security foundation for the whole ConnectSphere platform. Its job is not only
+        to register users and log them in, but also to make sure every protected request can be trusted. In practice, it
+        handles user creation, password hashing, login verification, access-token generation, refresh-token rotation,
+        token revocation during logout, profile updates, password changes, user search, and account deactivation.
+    </p>
+    <p>
+        Other microservices can rely on this service because it exposes a token validation endpoint and because the JWT
+        itself carries the identity information needed by downstream consumers: user id, email, username, role, provider,
+        token type, issuer, and expiry.
+    </p>
+
+    <h2>2. High-Level Architecture</h2>
+    <pre>Client
+  |
+  v
+AuthResource (REST controller)
+  |
+  v
+AuthServiceImpl (business rules)
+  |
+  +--> UserRepository ---------> users table
+  |
+  +--> PasswordEncoder --------> bcrypt hashes
+  |
+  +--> AuthenticationManager --> Spring Security credential check
+  |
+  +--> JwtTokenService --------> JWT creation / parsing / revocation
+                                  |
+                                  +--> RevokedTokenRepository --> revoked_tokens table
+
+Incoming protected requests also pass through:
+
+Client
+  |
+  v
+SecurityFilterChain
+  |
+  v
+JwtAuthenticationFilter
+  |
+  v
+CustomUserDetailsService
+  |
+  v
+UserRepository</pre>
+
+    <h2>3. Package Structure and Responsibilities</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Package</th>
+            <th>Main Classes</th>
+            <th>Responsibility</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>config</code></td>
+            <td><code>SecurityConfig</code>, <code>JwtProperties</code></td>
+            <td>Defines security rules, authentication beans, password encoding, and JWT configuration values.</td>
+        </tr>
+        <tr>
+            <td><code>controller</code></td>
+            <td><code>AuthResource</code>, <code>GlobalExceptionHandler</code></td>
+            <td>Exposes REST endpoints and converts exceptions into clean HTTP responses.</td>
+        </tr>
+        <tr>
+            <td><code>dto</code></td>
+            <td>Request and response records</td>
+            <td>Defines the API contract between client and server.</td>
+        </tr>
+        <tr>
+            <td><code>entity</code></td>
+            <td><code>User</code>, <code>RevokedToken</code>, <code>Role</code>, <code>AuthProvider</code></td>
+            <td>Represents the domain model stored in the database.</td>
+        </tr>
+        <tr>
+            <td><code>repository</code></td>
+            <td><code>UserRepository</code>, <code>RevokedTokenRepository</code></td>
+            <td>Handles database interaction using Spring Data JPA.</td>
+        </tr>
+        <tr>
+            <td><code>security</code></td>
+            <td><code>JwtAuthenticationFilter</code>, <code>JwtTokenService</code>, <code>CustomUserDetailsService</code>, <code>AuthenticatedUser</code></td>
+            <td>Handles authentication, JWT parsing, and the Spring Security user model.</td>
+        </tr>
+        <tr>
+            <td><code>service</code></td>
+            <td><code>AuthService</code>, <code>AuthServiceImpl</code></td>
+            <td>Contains the core business logic for all auth operations.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>4. Domain Model</h2>
+    <h3>4.1 User Entity</h3>
+    <p>
+        The <code>User</code> entity is the central table for auth and profile data. It stores both security fields
+        and user-facing profile information.
+    </p>
+    <table>
+        <thead>
+        <tr>
+            <th>Field</th>
+            <th>Meaning</th>
+            <th>Why It Matters</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>userId</code></td>
+            <td>Primary key, UUID string</td>
+            <td>Used as stable identity across services and inside JWT subject claims.</td>
+        </tr>
+        <tr>
+            <td><code>username</code></td>
+            <td>Public handle</td>
+            <td>Must be unique so mentions, search, and profile addressing remain consistent.</td>
+        </tr>
+        <tr>
+            <td><code>email</code></td>
+            <td>Login identity</td>
+            <td>Used for authentication and lookup by Spring Security.</td>
+        </tr>
+        <tr>
+            <td><code>passwordHash</code></td>
+            <td>Stored bcrypt hash</td>
+            <td>The raw password is never saved; only the hash is persisted.</td>
+        </tr>
+        <tr>
+            <td><code>fullName</code>, <code>bio</code>, <code>profilePicUrl</code></td>
+            <td>Profile fields</td>
+            <td>Returned by profile endpoints and shown in the UI.</td>
+        </tr>
+        <tr>
+            <td><code>role</code></td>
+            <td><code>USER</code> or <code>ADMIN</code></td>
+            <td>Becomes a Spring Security authority and is embedded in JWT claims.</td>
+        </tr>
+        <tr>
+            <td><code>provider</code></td>
+            <td><code>LOCAL</code>, <code>GOOGLE</code>, <code>GITHUB</code></td>
+            <td>Supports future OAuth-based login flows.</td>
+        </tr>
+        <tr>
+            <td><code>active</code></td>
+            <td>Account state flag</td>
+            <td>Inactive accounts cannot authenticate or refresh tokens.</td>
+        </tr>
+        <tr>
+            <td><code>createdAt</code>, <code>updatedAt</code></td>
+            <td>Audit timestamps</td>
+            <td>Auto-maintained via JPA lifecycle hooks.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p>
+        The entity also contains <code>@PrePersist</code> and <code>@PreUpdate</code> methods. These methods automatically
+        assign the UUID and timestamps, which keeps service logic simpler and makes persistence behavior consistent.
+    </p>
+
+    <h3>4.2 RevokedToken Entity</h3>
+    <p>
+        JWT is normally stateless, but logout requires a way to invalidate tokens before they naturally expire. That is why
+        this service stores revoked token ids in the <code>revoked_tokens</code> table. When a token is logged out or
+        rotated, its <code>jti</code> value is persisted with its expiry time. Later, any token check can reject that token.
+    </p>
+
+    <h2>5. Configuration Layer</h2>
+    <h3>5.1 Application Configuration</h3>
+    <p>
+        <code>application.yml</code> sets the default runtime behavior:
+    </p>
+    <ul>
+        <li>Service port is <code>8081</code>.</li>
+        <li>Default database is in-memory H2 for fast local development and testing.</li>
+        <li>JPA <code>ddl-auto</code> is set to <code>update</code>, so the schema is created automatically.</li>
+        <li>JWT issuer, secret, access-token TTL, and refresh-token TTL are centrally configured.</li>
+        <li>Actuator health and info endpoints are exposed.</li>
+    </ul>
+    <p>
+        <code>application-mysql.yml</code> switches the service to MySQL, and <code>application-oauth.yml</code> enables
+        Google and GitHub OAuth client registration only when the <code>oauth</code> profile is used.
+    </p>
+
+    <h3>5.2 SecurityConfig</h3>
+    <p>
+        <code>SecurityConfig</code> is where the service-wide security rules are assembled:
+    </p>
+    <ul>
+        <li>CSRF is disabled because this is a stateless JSON API, not a session-based MVC form flow.</li>
+        <li>Session creation is disabled using <code>SessionCreationPolicy.STATELESS</code>.</li>
+        <li>Public endpoints are allowed for register, login, refresh, validate, search, health, and OAuth callback routes.</li>
+        <li>All other routes require authentication.</li>
+        <li>A <code>DaoAuthenticationProvider</code> connects Spring Security to the custom user loader and bcrypt encoder.</li>
+        <li><code>JwtAuthenticationFilter</code> is inserted before <code>UsernamePasswordAuthenticationFilter</code>.</li>
+    </ul>
+
+    <div class="note">
+        The service intentionally exposes both <code>/auth/**</code> and <code>/api/v1/auth/**</code>. This satisfies the
+        original case-study endpoint naming and the versioned-API non-functional requirement at the same time.
+    </div>
+
+    <h2>6. Repository Layer</h2>
+    <p>
+        The repository layer is thin by design. It should only answer data-access questions and should not contain business
+        rules. Those rules stay in the service layer.
+    </p>
+
+    <h3>6.1 UserRepository</h3>
+    <ul>
+        <li><code>findByEmail</code> is used by login, profile access, token validation, and Spring Security user loading.</li>
+        <li><code>findByUsername</code> helps enforce unique usernames.</li>
+        <li><code>existsByEmail</code> and <code>existsByUsername</code> support uniqueness checks.</li>
+        <li><code>findAllByRole</code> exists for admin-oriented extension points.</li>
+        <li><code>searchByUsername</code> uses JPQL to search by username or full name.</li>
+        <li><code>deleteByUserId</code> is present for future hard-delete or admin cleanup use cases.</li>
+    </ul>
+
+    <h3>6.2 RevokedTokenRepository</h3>
+    <ul>
+        <li>Stores revoked token ids.</li>
+        <li><code>deleteByExpiresAtBefore</code> allows the service to purge revocation entries that are no longer needed.</li>
+    </ul>
+
+    <h2>7. Security Layer Internals</h2>
+    <h3>7.1 AuthenticatedUser</h3>
+    <p>
+        Spring Security works with <code>UserDetails</code>, not directly with the JPA entity. <code>AuthenticatedUser</code>
+        is a lightweight adapter around <code>User</code>. It exposes:
+    </p>
+    <ul>
+        <li><code>getUsername()</code> as the email, because email is the login identifier.</li>
+        <li><code>getPassword()</code> as the stored bcrypt hash.</li>
+        <li><code>getAuthorities()</code> as a single role authority like <code>ROLE_USER</code>.</li>
+        <li><code>isEnabled()</code> and <code>isAccountNonLocked()</code> based on the <code>active</code> flag.</li>
+    </ul>
+
+    <h3>7.2 CustomUserDetailsService</h3>
+    <p>
+        When Spring Security wants to authenticate an email/password login, it asks the <code>UserDetailsService</code> to
+        load a user by username. In this service, “username” means email. <code>CustomUserDetailsService</code> therefore
+        looks up the user with <code>userRepository.findByEmail(...)</code> and wraps the result in <code>AuthenticatedUser</code>.
+    </p>
+
+    <h3>7.3 JwtTokenService</h3>
+    <p>
+        <code>JwtTokenService</code> is responsible for all token mechanics:
+    </p>
+    <ul>
+        <li>Converts the configured secret into a signing key.</li>
+        <li>Generates access and refresh tokens with different <code>tokenType</code> claims and different TTLs.</li>
+        <li>Parses claims from existing tokens.</li>
+        <li>Checks whether a token is expired, malformed, wrong type, or revoked.</li>
+        <li>Revokes tokens by storing their token ids in the database.</li>
+    </ul>
+
+    <p>The generated JWT contains:</p>
+    <ul>
+        <li><code>sub</code> = user id</li>
+        <li><code>iss</code> = configured issuer</li>
+        <li><code>exp</code> = expiry time</li>
+        <li><code>iat</code> = issued time</li>
+        <li><code>jti</code> = unique token id</li>
+        <li>custom claims = email, username, role, provider, token type</li>
+    </ul>
+
+    <h3>7.4 JwtAuthenticationFilter</h3>
+    <p>
+        This filter runs on every incoming request before the normal username/password filter. Its job is to check whether
+        the request already carries a valid JWT. If it does, the filter builds the authenticated security context so the
+        controller can trust <code>Principal</code>.
+    </p>
+
+    <pre>1. Read Authorization header
+2. Check that it starts with "Bearer "
+3. Extract raw token
+4. Ask JwtTokenService if it is usable as an ACCESS token
+5. Extract the email claim
+6. Load user details from the database
+7. Reject if the account is inactive
+8. Build UsernamePasswordAuthenticationToken
+9. Store it in SecurityContextHolder
+10. Continue the filter chain</pre>
+
+    <h2>8. Service Layer - Core Business Logic</h2>
+    <p>
+        <code>AuthServiceImpl</code> is the real center of the module. This is where validation, persistence, security,
+        and token logic are combined into business operations.
+    </p>
+
+    <div class="flow">
+        <div class="panel">
+            <h4>Dependencies Used by AuthServiceImpl</h4>
+            <ul>
+                <li><code>UserRepository</code> for user reads and writes</li>
+                <li><code>PasswordEncoder</code> for hashing and password checks</li>
+                <li><code>AuthenticationManager</code> for Spring Security login validation</li>
+                <li><code>JwtTokenService</code> for token creation, validation, and revocation</li>
+            </ul>
+        </div>
+        <div class="panel">
+            <h4>Why This Layout Works</h4>
+            <ul>
+                <li>Controller stays thin</li>
+                <li>Security concerns stay reusable</li>
+                <li>Repositories stay storage-focused</li>
+                <li>Business rules live in one place</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>8.1 Register Flow</h3>
+    <pre>Client -> POST /auth/register
+       -> AuthResource.register()
+       -> AuthServiceImpl.register()
+          -> ensureUniqueUser()
+             -> UserRepository.findByEmail()
+             -> UserRepository.findByUsername()
+          -> verify role == USER
+          -> verify provider == LOCAL
+          -> PasswordEncoder.encode()
+          -> UserRepository.save()
+          -> buildAuthResponse()
+             -> JwtTokenService.generateAccessToken()
+             -> JwtTokenService.generateRefreshToken()
+       -> return AuthResponse</pre>
+
+    <p>
+        Important rules inside registration:
+    </p>
+    <ul>
+        <li>Only self-service <code>USER</code> registration is allowed.</li>
+        <li>Registration is local only for now; OAuth users are expected from a future provider callback flow.</li>
+        <li>Email is normalized to lowercase.</li>
+        <li>Password is stored only as a bcrypt hash.</li>
+    </ul>
+
+    <h3>8.2 Login Flow</h3>
+    <pre>Client -> POST /auth/login
+       -> AuthResource.login()
+       -> AuthServiceImpl.login()
+          -> AuthenticationManager.authenticate()
+             -> DaoAuthenticationProvider
+             -> CustomUserDetailsService
+             -> PasswordEncoder.matches()
+          -> getUserByEmail()
+          -> reject if user is inactive
+          -> buildAuthResponse()
+       -> return new access + refresh tokens</pre>
+
+    <p>
+        The service intentionally uses Spring Security for credential verification instead of writing password-comparison
+        logic by hand. That keeps authentication behavior aligned with the standard Spring pipeline.
+    </p>
+
+    <h3>8.3 Logout Flow</h3>
+    <pre>Client -> POST /auth/logout
+       -> AuthServiceImpl.logout()
+          -> JwtTokenService.revoke(accessToken)
+          -> JwtTokenService.revoke(refreshToken) if present
+          -> JwtTokenService.purgeExpiredRevocations()</pre>
+
+    <p>
+        Because JWT is stateless, logout would otherwise do nothing. The revocation table solves that problem by keeping a
+        denylist of token ids until each token's expiry time passes.
+    </p>
+
+    <h3>8.4 Refresh Flow</h3>
+    <pre>Client -> POST /auth/refresh
+       -> AuthServiceImpl.refreshToken()
+          -> JwtTokenService.isRefreshTokenUsable()
+          -> JwtTokenService.extractEmail()
+          -> getUserByEmail()
+          -> reject if inactive
+          -> revoke old refresh token
+          -> buildAuthResponse()
+       -> return rotated tokens</pre>
+
+    <p>
+        This is a rotating refresh-token design. Every successful refresh revokes the old refresh token and returns a new
+        token pair. That improves safety after token leakage and makes logout/deactivation stronger.
+    </p>
+
+    <h3>8.5 Validate Token Flow</h3>
+    <p>
+        The token validation endpoint is useful for downstream services or API gateways that need a trusted answer from the
+        auth service.
+    </p>
+    <pre>Client/Service -> POST /auth/validate
+               -> AuthServiceImpl.validateToken()
+                  -> JwtTokenService.isAccessTokenUsable()
+                  -> UserRepository.findByEmail()
+                  -> reject if inactive
+                  -> build TokenValidationResponse(valid=true, userId, email, role, expiresAt)</pre>
+
+    <h3>8.6 Profile Read and Update</h3>
+    <p>
+        Protected profile routes rely on the authenticated <code>Principal</code>. Because the JWT filter already loaded the
+        user into the security context, the controller can trust <code>principal.getName()</code> as the authenticated email.
+    </p>
+    <ul>
+        <li><code>GET /auth/profile</code> reads the current user and maps the entity to <code>UserProfileResponse</code>.</li>
+        <li><code>PUT /auth/profile</code> updates username, email, full name, bio, and profile picture after uniqueness checks.</li>
+    </ul>
+
+    <h3>8.7 Change Password</h3>
+    <p>
+        Password change has two validations:
+    </p>
+    <ul>
+        <li>The current password must match the stored hash.</li>
+        <li>The new password must be different from the old one.</li>
+    </ul>
+    <p>
+        If both checks pass, the new password is hashed and saved.
+    </p>
+
+    <h3>8.8 Search Users</h3>
+    <p>
+        Search is intentionally public in this version. It queries username and full name through the repository-level JPQL
+        method, then filters the results so only active users are returned.
+    </p>
+
+    <h3>8.9 Deactivate Account</h3>
+    <p>
+        Deactivation is a soft state change. The user row remains in the database, but the <code>active</code> flag is set
+        to false. That flag then affects:
+    </p>
+    <ul>
+        <li>Login eligibility</li>
+        <li>Refresh-token eligibility</li>
+        <li>JWT filter authentication success</li>
+        <li>Search results</li>
+        <li>Token validation response</li>
+    </ul>
+
+    <h2>9. Controller Layer - API Surface</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Protected?</th>
+            <th>What It Does</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>/auth/register</code></td>
+            <td>POST</td>
+            <td>No</td>
+            <td>Creates a new local user and immediately returns tokens.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/login</code></td>
+            <td>POST</td>
+            <td>No</td>
+            <td>Authenticates credentials and returns a fresh token pair.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/logout</code></td>
+            <td>POST</td>
+            <td>Yes in practice</td>
+            <td>Revokes access token and optional refresh token.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/refresh</code></td>
+            <td>POST</td>
+            <td>No</td>
+            <td>Accepts a refresh token and rotates the token pair.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/validate</code></td>
+            <td>POST</td>
+            <td>No</td>
+            <td>Returns whether an access token is valid and who it belongs to.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/profile</code></td>
+            <td>GET</td>
+            <td>Yes</td>
+            <td>Returns the authenticated user's profile.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/profile</code></td>
+            <td>PUT</td>
+            <td>Yes</td>
+            <td>Updates the authenticated user's profile data.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/password</code></td>
+            <td>PATCH</td>
+            <td>Yes</td>
+            <td>Changes password after verifying the current password.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/search</code></td>
+            <td>GET</td>
+            <td>No</td>
+            <td>Searches active users by username or full name.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/deactivate</code></td>
+            <td>PATCH</td>
+            <td>Yes</td>
+            <td>Soft-deactivates the authenticated account.</td>
+        </tr>
+        <tr>
+            <td><code>/auth/users/by-email/{email}</code></td>
+            <td>GET</td>
+            <td>Yes</td>
+            <td>Returns a user profile by email for internal or cross-service use.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>10. DTO Layer - Why It Exists</h2>
+    <p>
+        The DTO layer keeps the API contract stable and decoupled from database entities. This is important because:
+    </p>
+    <ul>
+        <li>The entity contains internal fields like <code>passwordHash</code> that must never be returned.</li>
+        <li>Request validation belongs on API input objects, not directly on the entity.</li>
+        <li>Different operations need different shapes, for example login versus profile update versus token validation.</li>
+    </ul>
+
+    <p>Main DTO groups:</p>
+    <ul>
+        <li>Input DTOs: <code>RegisterRequest</code>, <code>LoginRequest</code>, <code>RefreshTokenRequest</code>, <code>ChangePasswordRequest</code>, <code>UpdateProfileRequest</code>, <code>TokenValidationRequest</code>, <code>LogoutRequest</code></li>
+        <li>Output DTOs: <code>AuthResponse</code>, <code>UserProfileResponse</code>, <code>UserSummaryResponse</code>, <code>TokenValidationResponse</code>, <code>ApiMessageResponse</code></li>
+    </ul>
+
+    <h2>11. Error Handling</h2>
+    <p>
+        <code>GlobalExceptionHandler</code> gives the service a consistent API error shape:
+    </p>
+    <ul>
+        <li><code>NotFoundException</code> becomes HTTP 404.</li>
+        <li><code>BadRequestException</code>, <code>BadCredentialsException</code>, and constraint violations become HTTP 400.</li>
+        <li><code>AccessDeniedException</code> becomes HTTP 403.</li>
+        <li><code>MethodArgumentNotValidException</code> becomes a field-by-field validation map.</li>
+    </ul>
+
+    <p>
+        This means controller methods stay clean. They can focus on delegation while the advice layer handles failure translation.
+    </p>
+
+    <h2>12. End-to-End Connection Map</h2>
+    <pre>Register
+  AuthResource -> AuthServiceImpl -> UserRepository
+                               -> PasswordEncoder
+                               -> JwtTokenService
+
+Login
+  AuthResource -> AuthServiceImpl -> AuthenticationManager
+                               -> CustomUserDetailsService
+                               -> UserRepository
+                               -> PasswordEncoder
+                               -> JwtTokenService
+
+Protected request (/profile, /password, /deactivate)
+  SecurityFilterChain -> JwtAuthenticationFilter -> JwtTokenService
+                                               -> CustomUserDetailsService
+                                               -> UserRepository
+                       -> Controller uses Principal
+                       -> AuthServiceImpl executes business logic
+
+Logout / Refresh
+  AuthServiceImpl -> JwtTokenService -> RevokedTokenRepository
+
+Search
+  AuthResource -> AuthServiceImpl -> UserRepository.searchByUsername()</pre>
+
+    <h2>13. Data Flow by Concern</h2>
+    <h3>13.1 Identity</h3>
+    <p>User id and email are the two most important identity anchors. The database stores them, the JWT carries them, and the service re-checks them on secure operations.</p>
+
+    <h3>13.2 Authentication</h3>
+    <p>Email and password enter through login, are verified by Spring Security, and are then converted into a stateless JWT-based session model.</p>
+
+    <h3>13.3 Authorization</h3>
+    <p>Authorization is role-based. The role is stored in the user entity, mapped to a Spring authority, and copied into the token claims so downstream systems can inspect it if needed.</p>
+
+    <h3>13.4 Revocation</h3>
+    <p>Logout and refresh rotation write token ids into the revocation repository. This gives the service a hybrid model: stateless token usage with stateful invalidation when needed.</p>
+
+    <h2>14. Test Coverage</h2>
+    <p>
+        The integration test class verifies the most important service behavior through real HTTP calls with <code>MockMvc</code>:
+    </p>
+    <ul>
+        <li>Registration returns an access token and stores a searchable user.</li>
+        <li>Login succeeds with valid credentials.</li>
+        <li>Token validation returns <code>valid=true</code> for a good token.</li>
+        <li>Refresh generates a new access token from a valid refresh token.</li>
+        <li>Password change works on an authenticated route.</li>
+        <li>Deactivation succeeds on an authenticated route.</li>
+    </ul>
+    <p class="small">
+        The service was validated with a passing <code>mvn clean test</code> run.
+    </p>
+
+    <h2>15. Current Design Decisions and Limits</h2>
+    <ul>
+        <li>Public registration is intentionally limited to <code>USER</code> role for safety.</li>
+        <li>OAuth dependencies and profile-specific configuration are present, but the provider callback flow is not implemented yet.</li>
+        <li>Logout uses token revocation instead of deleting a session, because the service is stateless.</li>
+        <li>H2 is used by default for local work, but MySQL configuration is ready through a profile.</li>
+        <li>Search is public and returns only active users.</li>
+        <li>Deactivation is soft, not hard deletion.</li>
+    </ul>
+
+    <h2>16. Summary</h2>
+    <p>
+        In simple terms, the auth service works because each layer has one clear job:
+    </p>
+    <ul>
+        <li>The controller receives and returns HTTP.</li>
+        <li>The service enforces business rules.</li>
+        <li>The repositories store and fetch data.</li>
+        <li>The security layer authenticates requests and creates trusted principals.</li>
+        <li>The JWT service turns login state into signed tokens and handles revocation.</li>
+        <li>The configuration layer wires the whole module together.</li>
+    </ul>
+    <p>
+        That separation is what makes the service understandable, testable, and ready to support the rest of the ConnectSphere microservices.
+    </p>
+</div>
+</body>
+</html>

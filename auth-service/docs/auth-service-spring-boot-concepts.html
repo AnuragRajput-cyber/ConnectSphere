@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Service Spring Boot Concepts Guide</title>
+    <style>
+        :root {
+            --ink: #172433;
+            --muted: #5d6d7e;
+            --line: #d9e1ea;
+            --panel: #f7f9fc;
+            --accent: #135b9f;
+            --accent-soft: #e8f2fb;
+            --warn: #fff7e7;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Calibri, Arial, sans-serif;
+            color: var(--ink);
+            background: #ffffff;
+            line-height: 1.6;
+        }
+        .page {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 36px 42px 72px;
+        }
+        h1, h2, h3, h4 {
+            margin-top: 0;
+            color: #102030;
+        }
+        h1 {
+            font-size: 31px;
+            margin-bottom: 10px;
+        }
+        h2 {
+            font-size: 23px;
+            margin-top: 34px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--line);
+        }
+        h3 {
+            font-size: 18px;
+            margin-top: 24px;
+            margin-bottom: 10px;
+        }
+        p { margin: 10px 0; }
+        .lead {
+            color: var(--muted);
+            font-size: 16px;
+        }
+        .summary, .note, .concept-card {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px 16px;
+            background: var(--panel);
+        }
+        .summary { margin: 22px 0 26px; }
+        .note {
+            background: var(--warn);
+            border-color: #e7d5a0;
+            margin: 16px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+        }
+        th { background: var(--accent-soft); }
+        code, pre { font-family: Consolas, "Courier New", monospace; }
+        code {
+            background: #eef3f8;
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            margin: 14px 0;
+            background: #0f1720;
+            color: #ecf2f8;
+            padding: 14px 16px;
+            border-radius: 12px;
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        ul {
+            margin: 8px 0 8px 22px;
+        }
+        li { margin: 6px 0; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin: 18px 0;
+        }
+        .concept-card h4 {
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        .small {
+            color: var(--muted);
+            font-size: 13px;
+        }
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page {
+                padding: 24px 28px 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>ConnectSphere Auth Service - Spring Boot Concepts Guide</h1>
+    <p class="lead">
+        This document is a complete study guide for the Spring Boot concepts used in the <code>auth-service</code>.
+        The goal is not only to say what each concept means, but also where it is used in this project, why it is needed,
+        and how it works internally inside Spring Boot and the wider Spring ecosystem.
+    </p>
+
+    <div class="summary">
+        <strong>Scope of this guide</strong><br>
+        Service: <code>auth-service</code><br>
+        Base package: <code>com.connectsphere.auth</code><br>
+        Focus: all Spring Boot and Spring ecosystem concepts actually used in this service<br>
+        Coverage style: definition + project usage + internal working
+    </div>
+
+    <h2>1. What This Service Uses from Spring</h2>
+    <p>
+        Even though we casually say “Spring Boot concepts,” this auth service actually uses several connected layers:
+    </p>
+    <table>
+        <thead>
+        <tr>
+            <th style="width: 28%">Technology Area</th>
+            <th>What it contributes in this auth service</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Spring Boot</td>
+            <td>Application startup, dependency starters, auto-configuration, profile-based configuration, Actuator, test bootstrapping.</td>
+        </tr>
+        <tr>
+            <td>Spring Framework Core</td>
+            <td>Dependency injection, configuration classes, bean lifecycle, component scanning.</td>
+        </tr>
+        <tr>
+            <td>Spring MVC</td>
+            <td>REST controllers, request mapping, request/response conversion, validation integration, exception handling.</td>
+        </tr>
+        <tr>
+            <td>Spring Security</td>
+            <td>Authentication manager, security filter chain, password encoding, custom user loading, protected endpoints.</td>
+        </tr>
+        <tr>
+            <td>Spring Data JPA</td>
+            <td>Entity mapping, repositories, database persistence, JPQL queries, transactions.</td>
+        </tr>
+        <tr>
+            <td>Spring Boot Test</td>
+            <td>Integration testing with a full application context and MockMvc.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>2. Starter Dependencies and Why They Matter</h2>
+    <p>
+        One of the first big Spring Boot concepts in this service is the use of <strong>starter dependencies</strong>.
+        A starter is a curated dependency bundle that brings the common libraries, defaults, and auto-configuration hooks
+        for a given area.
+    </p>
+    <table>
+        <thead>
+        <tr>
+            <th style="width: 30%">Dependency</th>
+            <th>Why this auth service needs it</th>
+            <th>What Spring Boot auto-configures because of it</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td><code>spring-boot-starter-web</code></td>
+            <td>Needed for REST endpoints such as register, login, refresh, profile, and search.</td>
+            <td>Embedded web server, DispatcherServlet, JSON conversion, request mapping infrastructure.</td>
+        </tr>
+        <tr>
+            <td><code>spring-boot-starter-validation</code></td>
+            <td>Needed so request DTOs can use validation annotations like <code>@NotBlank</code>, <code>@Email</code>, and <code>@Size</code>.</td>
+            <td>Bean Validation integration with controller argument resolution.</td>
+        </tr>
+        <tr>
+            <td><code>spring-boot-starter-data-jpa</code></td>
+            <td>Needed so users and revoked tokens can be stored in a relational database through entities and repositories.</td>
+            <td>EntityManagerFactory, transaction manager, repository scanning, JPA infrastructure.</td>
+        </tr>
+        <tr>
+            <td><code>spring-boot-starter-security</code></td>
+            <td>Needed for login verification, route protection, password hashing, security context management, and filter integration.</td>
+            <td>Security filter infrastructure, authentication support, default security beans.</td>
+        </tr>
+        <tr>
+            <td><code>spring-boot-starter-oauth2-client</code></td>
+            <td>Included because the case study requires future Google/GitHub login support.</td>
+            <td>OAuth client registration and related support when the <code>oauth</code> profile is enabled.</td>
+        </tr>
+        <tr>
+            <td><code>spring-boot-starter-actuator</code></td>
+            <td>Needed to expose operational endpoints such as health checks.</td>
+            <td>Actuator endpoints and management infrastructure.</td>
+        </tr>
+        <tr>
+            <td><code>spring-boot-starter-test</code></td>
+            <td>Needed to test the auth service with a real Spring Boot application context.</td>
+            <td>Spring test support, context loading, assertions, test bootstrapping.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3>Internal Working of Starters</h3>
+    <p>
+        A starter itself is not the feature. It is a dependency package that pulls in the right libraries, and those libraries
+        expose classes that Spring Boot recognizes through <strong>conditional auto-configuration</strong>. During startup,
+        Spring Boot checks the classpath, the configuration files, and the existing beans. Then it decides what beans to create automatically.
+    </p>
+    <pre>Application starts
+  -> Spring Boot inspects classpath
+  -> finds spring-web classes, spring-security classes, JPA classes, validation classes
+  -> loads matching auto-configuration classes
+  -> creates beans if conditions match and no custom bean overrides them
+  -> application becomes ready with far less manual setup</pre>
+
+    <h2>3. @SpringBootApplication</h2>
+    <p>
+        The file <code>AuthServiceApplication.java</code> uses <code>@SpringBootApplication</code>. This is one of the most central Spring Boot concepts.
+    </p>
+    <h3>Definition</h3>
+    <p>
+        <code>@SpringBootApplication</code> is a convenience annotation that combines:
+    </p>
+    <ul>
+        <li><code>@Configuration</code> - marks the class as a source of bean definitions</li>
+        <li><code>@EnableAutoConfiguration</code> - lets Spring Boot auto-configure beans based on the classpath and config</li>
+        <li><code>@ComponentScan</code> - scans the package and subpackages for Spring-managed components</li>
+    </ul>
+
+    <h3>Why It Is Needed Here</h3>
+    <p>
+        Without it, this service would need a much larger amount of manual setup. We would have to explicitly configure component scanning,
+        import auto-configuration classes, and bootstrap the application context ourselves.
+    </p>
+
+    <h3>How It Works Internally</h3>
+    <pre>SpringApplication.run(AuthServiceApplication.class, args)
+  -> creates ApplicationContext
+  -> uses AuthServiceApplication as the primary source
+  -> component scan starts from package com.connectsphere.auth
+  -> discovers controllers, services, repositories, config classes, filters
+  -> auto-configuration loads infrastructure beans
+  -> web server starts and beans become injectable</pre>
+
+    <h2>4. Component Scanning and Spring Beans</h2>
+    <p>
+        A <strong>bean</strong> is an object managed by Spring. Instead of creating these objects manually with <code>new</code> all over the code,
+        Spring creates them, stores them in the application context, wires them together, and manages their lifecycle.
+    </p>
+
+    <div class="grid">
+        <div class="concept-card">
+            <h4>@Service</h4>
+            <p>Used on <code>AuthServiceImpl</code>, <code>JwtTokenService</code>, and <code>CustomUserDetailsService</code>.</p>
+            <p>Marks business or infrastructure classes as Spring-managed service beans.</p>
+        </div>
+        <div class="concept-card">
+            <h4>@RestController</h4>
+            <p>Used on <code>AuthResource</code>.</p>
+            <p>Marks the class as a web controller whose methods return data directly as HTTP responses, usually JSON.</p>
+        </div>
+        <div class="concept-card">
+            <h4>@Configuration</h4>
+            <p>Used on <code>SecurityConfig</code>.</p>
+            <p>Marks the class as a source of bean definitions.</p>
+        </div>
+        <div class="concept-card">
+            <h4>@Component</h4>
+            <p>Used on <code>JwtAuthenticationFilter</code>.</p>
+            <p>Marks the filter as a generic Spring-managed bean so it can be injected into the security configuration.</p>
+        </div>
+    </div>
+
+    <h3>Internal Working</h3>
+    <p>
+        During component scanning, Spring searches the <code>com.connectsphere.auth</code> package tree because that is where
+        the main application class is located. When it finds classes with stereotype annotations such as <code>@Service</code>
+        or <code>@RestController</code>, it registers them as beans in the application context.
+    </p>
+
+    <h2>5. Dependency Injection and Constructor Injection</h2>
+    <h3>Definition</h3>
+    <p>
+        Dependency Injection means a class does not build its own collaborators. Instead, Spring provides them.
+    </p>
+
+    <h3>Where It Is Used Here</h3>
+    <ul>
+        <li><code>AuthResource</code> receives <code>AuthService</code> through its constructor</li>
+        <li><code>AuthServiceImpl</code> receives <code>UserRepository</code>, <code>PasswordEncoder</code>, <code>AuthenticationManager</code>, and <code>JwtTokenService</code></li>
+        <li><code>SecurityConfig</code> receives <code>JwtAuthenticationFilter</code> and <code>UserDetailsService</code></li>
+        <li><code>JwtAuthenticationFilter</code> receives <code>JwtTokenService</code> and <code>CustomUserDetailsService</code></li>
+    </ul>
+
+    <h3>Why Constructor Injection Is Better</h3>
+    <ul>
+        <li>Dependencies are explicit</li>
+        <li>The object cannot exist in a half-initialized state</li>
+        <li>It is easier to test and reason about</li>
+        <li>It works cleanly with final fields</li>
+    </ul>
+
+    <h3>Internal Working</h3>
+    <pre>Spring creates bean A
+  -> sees constructor needs bean B and bean C
+  -> looks them up in application context
+  -> creates them first if necessary
+  -> passes them into bean A constructor
+  -> stores fully initialized bean A</pre>
+
+    <h2>6. Configuration Files, Profiles, and Configuration Properties</h2>
+    <h3>6.1 application.yml</h3>
+    <p>
+        Spring Boot loads <code>application.yml</code> automatically and binds its values into the environment.
+        This auth service uses it for server port, datasource config, JPA settings, Actuator exposure, and JWT settings.
+    </p>
+
+    <h3>6.2 Profiles</h3>
+    <p>
+        Profiles let one Spring Boot app behave differently in different environments.
+    </p>
+    <ul>
+        <li><code>application.yml</code> = default local/test behavior</li>
+        <li><code>application-mysql.yml</code> = switch persistence to MySQL</li>
+        <li><code>application-oauth.yml</code> = enable social-login client configuration</li>
+    </ul>
+
+    <h3>Why Profiles Are Needed</h3>
+    <p>
+        The auth service should not need different code for H2, MySQL, and OAuth-enabled modes. Profiles let us switch behavior with configuration only.
+    </p>
+
+    <h3>6.3 @ConfigurationProperties with a Record</h3>
+    <p>
+        <code>JwtProperties</code> uses <code>@ConfigurationProperties(prefix = "app.jwt")</code>. This is a very important Spring Boot concept.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        <code>@ConfigurationProperties</code> binds a configuration section into a strongly typed Java object.
+    </p>
+    <h4>Why It Is Better Than Reading Strings Manually</h4>
+    <ul>
+        <li>Type safety: durations become <code>Duration</code>, not raw strings everywhere</li>
+        <li>Validation support through annotations like <code>@NotBlank</code> and <code>@NotNull</code></li>
+        <li>Cleaner code in services</li>
+    </ul>
+    <h4>Why a Record Is Used Here</h4>
+    <p>
+        A Java <code>record</code> is ideal for immutable configuration data. Spring Boot can construct the record directly
+        from YAML values, and the record naturally represents “fixed configuration, not changing state.”
+    </p>
+
+    <h4>Internal Working</h4>
+    <pre>Spring Boot reads application.yml
+  -> finds app.jwt section
+  -> sees JwtProperties is registered with @EnableConfigurationProperties
+  -> binds issuer, secret, accessTokenTtl, refreshTokenTtl
+  -> validates fields
+  -> stores JwtProperties as a bean
+  -> JwtTokenService receives it through constructor injection</pre>
+
+    <h3>6.4 @EnableConfigurationProperties</h3>
+    <p>
+        The main application class uses <code>@EnableConfigurationProperties(JwtProperties.class)</code>.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        This tells Spring Boot to register the given configuration-properties type as a managed bean and bind external configuration into it.
+    </p>
+    <h4>Why It Is Needed Here</h4>
+    <p>
+        Without it, <code>JwtProperties</code> would not automatically become available for injection into <code>JwtTokenService</code>.
+    </p>
+
+    <h3>6.5 @Bean Methods</h3>
+    <p>
+        <code>SecurityConfig</code> defines bean methods such as <code>securityFilterChain()</code>, <code>authenticationProvider()</code>,
+        <code>passwordEncoder()</code>, and <code>authenticationManager()</code>.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        A method annotated with <code>@Bean</code> tells Spring, “the object returned by this method should be stored in the application context and reused as a managed bean.”
+    </p>
+    <h4>Why It Is Needed Here</h4>
+    <p>
+        Some objects in the auth service are not discovered just by component scanning. The security chain and custom authentication infrastructure must be created intentionally
+        inside configuration code, and <code>@Bean</code> is how that happens.
+    </p>
+
+    <h2>7. Spring MVC Concepts Used in the Auth Service</h2>
+    <h3>7.1 @RestController</h3>
+    <p>
+        <code>@RestController</code> means this class handles HTTP requests and returns serialized response bodies directly.
+        It is effectively <code>@Controller</code> plus <code>@ResponseBody</code>.
+    </p>
+
+    <h3>7.2 @RequestMapping and Method-Level Mappings</h3>
+    <p>
+        <code>AuthResource</code> uses class-level <code>@RequestMapping({"/api/v1/auth", "/auth"})</code> and method-level
+        mappings like <code>@PostMapping("/login")</code>, <code>@GetMapping("/profile")</code>, and <code>@PatchMapping("/password")</code>.
+    </p>
+    <p>
+        This is needed so one controller can expose multiple routes cleanly while keeping the endpoint URLs readable and organized.
+    </p>
+
+    <h3>Internal Working of Request Mapping</h3>
+    <pre>HTTP request arrives
+  -> DispatcherServlet receives it
+  -> HandlerMapping finds matching controller method
+  -> argument resolvers prepare method parameters
+  -> controller method runs
+  -> return value is converted into HTTP response</pre>
+
+    <h3>7.3 @RequestBody</h3>
+    <p>
+        Used for request DTOs like register, login, refresh, logout, password change, and token validation.
+        Spring reads the incoming JSON and converts it into the matching Java record.
+    </p>
+
+    <h3>7.4 ResponseEntity</h3>
+    <p>
+        <code>ResponseEntity</code> is used when the controller needs explicit control over the HTTP response status and body.
+        For example, register returns HTTP 201 Created, while login returns HTTP 200 OK.
+    </p>
+
+    <h3>7.5 @RequestParam and @PathVariable</h3>
+    <ul>
+        <li><code>@RequestParam("query")</code> is used for search</li>
+        <li><code>@PathVariable</code> is used for the by-email endpoint</li>
+    </ul>
+    <p>
+        These concepts let Spring extract URL query values and URL path values and inject them as method arguments.
+    </p>
+
+    <h3>7.6 Principal</h3>
+    <p>
+        <strong>Principal</strong> represents the authenticated identity of the current request.
+        In this service, after the JWT filter succeeds, the controller can ask for <code>Principal principal</code>,
+        and <code>principal.getName()</code> returns the authenticated email.
+    </p>
+
+    <h4>Why Principal Is Needed Here</h4>
+    <p>
+        Without Principal, the profile, password, and deactivate endpoints would not know which logged-in user is making the request.
+    </p>
+
+    <h4>Internal Working</h4>
+    <pre>JWT filter authenticates request
+  -> builds UsernamePasswordAuthenticationToken
+  -> stores it in SecurityContextHolder
+  -> Spring MVC later resolves Principal from the security context
+  -> controller receives Principal as a method parameter</pre>
+
+    <h2>8. Validation Concepts</h2>
+    <h3>8.1 @Valid</h3>
+    <p>
+        <code>@Valid</code> on controller arguments tells Spring to validate the incoming DTO before the method logic runs.
+    </p>
+
+    <h3>8.2 Jakarta Validation Annotations</h3>
+    <p>
+        The auth service uses annotations like:
+    </p>
+    <ul>
+        <li><code>@NotBlank</code></li>
+        <li><code>@NotNull</code></li>
+        <li><code>@Email</code></li>
+        <li><code>@Size</code></li>
+    </ul>
+
+    <h3>Why Validation Is Needed</h3>
+    <ul>
+        <li>Reject bad input early</li>
+        <li>Keep service logic cleaner</li>
+        <li>Prevent malformed data from reaching persistence and security logic</li>
+    </ul>
+
+    <h3>Internal Working</h3>
+    <pre>Request JSON arrives
+  -> Spring converts it into DTO
+  -> Bean Validation checks annotations
+  -> if invalid, MethodArgumentNotValidException is thrown
+  -> GlobalExceptionHandler formats the error response</pre>
+
+    <h2>9. Exception Handling with @RestControllerAdvice</h2>
+    <p>
+        <code>GlobalExceptionHandler</code> uses <code>@RestControllerAdvice</code>. This is a Spring MVC mechanism for centralized exception handling.
+    </p>
+
+    <h3>Definition</h3>
+    <p>
+        <code>@RestControllerAdvice</code> applies exception-handling methods globally across controllers and returns serialized response bodies.
+    </p>
+
+    <h3>Why It Is Needed</h3>
+    <ul>
+        <li>Controllers stay clean</li>
+        <li>Error responses stay consistent</li>
+        <li>Business logic can throw meaningful exceptions without worrying about HTTP formatting</li>
+    </ul>
+
+    <h3>Internal Working</h3>
+    <pre>Controller or service throws exception
+  -> exception bubbles up through Spring MVC
+  -> ExceptionHandler methods are checked
+  -> matching handler builds ResponseEntity
+  -> HTTP response is sent with status and body</pre>
+
+    <h2>10. Spring Data JPA Concepts</h2>
+    <h3>10.1 @Entity and Table Mapping</h3>
+    <p>
+        <code>User</code> and <code>RevokedToken</code> are annotated with <code>@Entity</code>.
+        This tells JPA that these classes should be mapped to database tables.
+    </p>
+
+    <h3>10.2 @Id, @Column, @Enumerated</h3>
+    <ul>
+        <li><code>@Id</code> marks the primary key field</li>
+        <li><code>@Column</code> customizes database column mapping</li>
+        <li><code>@Enumerated(EnumType.STRING)</code> stores enum values as readable strings</li>
+    </ul>
+
+    <h3>Why Entities Are Needed</h3>
+    <p>
+        The auth service needs permanent storage for users and revoked token ids. Entities are the bridge between Java objects and relational tables.
+    </p>
+
+    <h3>10.3 JPA Lifecycle Hooks</h3>
+    <p>
+        The <code>User</code> entity uses <code>@PrePersist</code> and <code>@PreUpdate</code>.
+    </p>
+    <ul>
+        <li><code>@PrePersist</code> sets id and timestamps before first save</li>
+        <li><code>@PreUpdate</code> refreshes the updated timestamp on modification</li>
+    </ul>
+    <p>
+        This keeps repetitive audit logic out of the service layer.
+    </p>
+
+    <h3>10.4 Repository Interfaces</h3>
+    <p>
+        <code>UserRepository</code> and <code>RevokedTokenRepository</code> extend <code>JpaRepository</code>.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        <code>JpaRepository</code> is a Spring Data interface that provides ready-made CRUD operations and integrates with JPA automatically.
+    </p>
+    <h4>Why It Is Needed</h4>
+    <p>
+        Without it, this service would need a much heavier DAO layer with manual entity manager code.
+    </p>
+
+    <h3>10.5 Derived Query Methods and JPQL</h3>
+    <p>
+        Spring Data JPA can create queries from method names such as:
+    </p>
+    <ul>
+        <li><code>findByEmail</code></li>
+        <li><code>findByUsername</code></li>
+        <li><code>existsByEmail</code></li>
+        <li><code>deleteByExpiresAtBefore</code></li>
+    </ul>
+    <p>
+        It also supports custom JPQL queries through <code>@Query</code>, which is how <code>searchByUsername</code> is implemented.
+    </p>
+
+    <h3>10.6 @Transactional</h3>
+    <p>
+        <code>AuthServiceImpl</code> is annotated with <code>@Transactional</code>, and some methods use <code>@Transactional(readOnly = true)</code>.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        A transaction wraps a unit of database work so that reads and writes stay consistent.
+    </p>
+    <h4>Why It Is Needed Here</h4>
+    <ul>
+        <li>Registration writes a full user record atomically</li>
+        <li>Password changes and deactivation update data safely</li>
+        <li>Read-only methods communicate intent and may optimize persistence behavior</li>
+    </ul>
+
+    <h4>Internal Working</h4>
+    <pre>Controller calls service method
+  -> Spring proxy intercepts call
+  -> transaction starts before method body
+  -> repository operations run inside transaction
+  -> transaction commits on success or rolls back on failure</pre>
+
+    <h2>11. Spring Security Concepts</h2>
+    <p>
+        This auth service uses Spring Security heavily. It does not just “protect endpoints”; it also verifies credentials,
+        stores the authenticated user in the request context, and provides the extension points used by JWT authentication.
+    </p>
+
+    <h3>11.0 @EnableMethodSecurity</h3>
+    <p>
+        <code>SecurityConfig</code> uses <code>@EnableMethodSecurity</code>.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        This annotation turns on method-level security support in Spring, enabling annotations such as <code>@PreAuthorize</code> if the service needs them.
+    </p>
+    <h4>Why It Is Included Here</h4>
+    <p>
+        Even though the current auth service mainly secures endpoints through the filter chain, enabling method security keeps the service ready for future fine-grained authorization checks in service methods.
+    </p>
+
+    <h3>11.1 SecurityFilterChain</h3>
+    <p>
+        <code>SecurityFilterChain</code> defines how requests are secured.
+    </p>
+    <h4>Why It Is Needed</h4>
+    <ul>
+        <li>To declare which routes are public</li>
+        <li>To declare which routes require authentication</li>
+        <li>To insert the JWT filter in the right place</li>
+        <li>To disable session-based behavior for a stateless API</li>
+    </ul>
+
+    <h4>Internal Working</h4>
+    <p>
+        When an HTTP request enters the application, it passes through the security filter chain before it reaches any controller.
+        Each filter can inspect or modify the request, authenticate it, reject it, or let it continue.
+    </p>
+
+    <h3>11.2 SessionCreationPolicy.STATELESS</h3>
+    <p>
+        This tells Spring Security not to create or use server-side HTTP sessions for authentication state.
+    </p>
+    <p>
+        We need this because the auth service uses JWT. The token itself carries the authentication information, so a server session is unnecessary.
+    </p>
+
+    <h3>11.3 AuthenticationManager</h3>
+    <p>
+        <code>AuthenticationManager</code> is the entry point Spring Security uses to verify login credentials.
+    </p>
+    <h4>How It Is Used Here</h4>
+    <p>
+        <code>AuthServiceImpl.login()</code> sends a <code>UsernamePasswordAuthenticationToken</code> with email and password into the authentication manager.
+    </p>
+
+    <h4>Internal Working</h4>
+    <pre>AuthServiceImpl.login()
+  -> AuthenticationManager.authenticate(...)
+  -> delegates to configured AuthenticationProvider
+  -> provider loads user details
+  -> provider checks password with PasswordEncoder
+  -> success returns authenticated token, failure throws exception</pre>
+
+    <h3>11.4 AuthenticationProvider and DaoAuthenticationProvider</h3>
+    <p>
+        <code>DaoAuthenticationProvider</code> is the Spring Security provider used here.
+        It is designed for username/password login backed by a user store.
+    </p>
+    <p>
+        It is configured with:
+    </p>
+    <ul>
+        <li>a <code>UserDetailsService</code> to load the user</li>
+        <li>a <code>PasswordEncoder</code> to compare passwords safely</li>
+    </ul>
+
+    <h3>11.5 UserDetailsService and UserDetails</h3>
+    <p>
+        Spring Security does not use the JPA entity directly. It expects a <code>UserDetailsService</code> that can load a <code>UserDetails</code>.
+    </p>
+    <ul>
+        <li><code>CustomUserDetailsService</code> loads the user from the repository by email</li>
+        <li><code>AuthenticatedUser</code> adapts the app's <code>User</code> entity into Spring Security's <code>UserDetails</code> format</li>
+    </ul>
+
+    <p>
+        This separation is useful because the security layer may need concepts like authorities and account-enabled flags that are not part of a plain entity contract.
+    </p>
+
+    <h3>11.6 PasswordEncoder</h3>
+    <p>
+        The service uses <code>BCryptPasswordEncoder</code>.
+    </p>
+    <h4>Why It Is Needed</h4>
+    <ul>
+        <li>Passwords must never be stored in plain text</li>
+        <li>Hashing protects passwords if the database is leaked</li>
+        <li>BCrypt includes salting and is designed for password storage</li>
+    </ul>
+    <h4>How It Is Used</h4>
+    <ul>
+        <li><code>encode(...)</code> during registration and password change</li>
+        <li><code>matches(...)</code> during password change checks and login verification</li>
+    </ul>
+
+    <h3>11.7 SecurityContextHolder</h3>
+    <p>
+        This is the central holder for the current authenticated user during a request.
+    </p>
+    <p>
+        The JWT filter writes authentication into it, and later MVC can read that identity back as a Principal.
+    </p>
+
+    <h2>12. Custom JWT Filter Concepts</h2>
+    <h3>12.1 OncePerRequestFilter</h3>
+    <p>
+        <code>JwtAuthenticationFilter</code> extends <code>OncePerRequestFilter</code>.
+    </p>
+    <h4>Definition</h4>
+    <p>
+        This is a Spring web filter base class that guarantees the filter runs once per request dispatch.
+    </p>
+    <h4>Why It Is Needed</h4>
+    <p>
+        JWT should be checked once per incoming request. Running the logic multiple times for the same request would be wasteful and could complicate behavior.
+    </p>
+
+    <h3>12.2 addFilterBefore(...)</h3>
+    <p>
+        The security configuration inserts the JWT filter before <code>UsernamePasswordAuthenticationFilter</code>.
+    </p>
+    <p>
+        This ordering matters. We need the JWT-based authentication to happen early enough that the security context is already ready before protected endpoints are resolved.
+    </p>
+
+    <h3>12.3 Internal Request Authentication Flow</h3>
+    <pre>Incoming request
+  -> SecurityFilterChain starts
+  -> JwtAuthenticationFilter checks Authorization header
+  -> token is parsed and validated
+  -> email claim is extracted
+  -> user is loaded from database
+  -> UsernamePasswordAuthenticationToken is built
+  -> SecurityContextHolder is populated
+  -> controller receives authenticated Principal</pre>
+
+    <h2>13. JWT Service Concepts Inside a Spring Boot App</h2>
+    <p>
+        JWT itself is not a Spring Boot concept, but the way this auth service integrates JWT into Spring Boot absolutely is.
+    </p>
+
+    <h3>What Spring Contributes Here</h3>
+    <ul>
+        <li>Configuration binding for issuer, secret, and durations</li>
+        <li>Bean lifecycle for <code>JwtTokenService</code></li>
+        <li>Filter-chain integration for access-token checks</li>
+        <li>Controller/service wiring for refresh and validate flows</li>
+    </ul>
+
+    <h3>Why Access Token and Refresh Token Are Kept as Two Concepts</h3>
+    <p>
+        This service uses two token types so security and convenience can both be reasonable.
+    </p>
+    <ul>
+        <li><strong>Access token</strong> is for normal protected API calls</li>
+        <li><strong>Refresh token</strong> is only for getting a new token pair</li>
+    </ul>
+    <p>
+        The token type is enforced by custom claims and checked by <code>JwtTokenService.isTokenUsable(...)</code>.
+    </p>
+
+    <h2>14. Spring Boot Actuator</h2>
+    <p>
+        The service includes <code>spring-boot-starter-actuator</code> and exposes <code>health</code> and <code>info</code>.
+    </p>
+    <h3>Definition</h3>
+    <p>
+        Actuator provides operational endpoints used to observe and monitor a running service.
+    </p>
+    <h3>Why It Is Needed</h3>
+    <ul>
+        <li>Health checks for deployment platforms and microservice environments</li>
+        <li>Basic operational visibility</li>
+    </ul>
+    <p>
+        In a microservice architecture, Actuator health endpoints are especially important because service availability needs to be checked automatically.
+    </p>
+
+    <h2>15. Embedded Server Concept</h2>
+    <p>
+        Because the project uses <code>spring-boot-starter-web</code>, Spring Boot starts an embedded web server automatically.
+        You do not need to deploy this service manually into an external Tomcat installation.
+    </p>
+
+    <h3>Why It Matters</h3>
+    <ul>
+        <li>Simple development workflow</li>
+        <li>Easier microservice deployment</li>
+        <li>Each service can run independently on its own port</li>
+    </ul>
+
+    <h2>16. Spring Boot Testing Concepts</h2>
+    <h3>16.1 @SpringBootTest</h3>
+    <p>
+        <code>@SpringBootTest</code> starts a real application context for tests.
+    </p>
+    <h4>Why It Is Needed Here</h4>
+    <p>
+        The auth service includes security filters, repositories, validation, exception handling, and controller wiring.
+        A narrow unit test would miss many integration points. A bootstrapped test ensures the whole stack works together.
+    </p>
+
+    <h3>16.2 @AutoConfigureMockMvc</h3>
+    <p>
+        This tells Spring Boot to configure <code>MockMvc</code>, which is a testing tool for simulating HTTP requests to the application without starting a real network server.
+    </p>
+
+    <h3>16.3 MockMvc</h3>
+    <p>
+        <code>MockMvc</code> is used to test:
+    </p>
+    <ul>
+        <li>registration</li>
+        <li>search</li>
+        <li>login</li>
+        <li>validate token</li>
+        <li>refresh token</li>
+        <li>change password</li>
+        <li>deactivate account</li>
+    </ul>
+
+    <h3>Internal Working</h3>
+    <pre>Test method runs
+  -> Spring Boot test context is already loaded
+  -> MockMvc simulates HTTP request
+  -> request goes through MVC and security stack
+  -> controller/service/repository logic executes
+  -> assertions check JSON and status</pre>
+
+    <h2>17. H2 and MySQL Integration Through Spring Boot</h2>
+    <p>
+        The service uses H2 by default and can switch to MySQL through a profile. This is a common Spring Boot pattern:
+        keep local development simple, but make production-like storage easy to activate by configuration.
+    </p>
+    <p>
+        Boot auto-configures the datasource based on the active profile and the available JDBC driver.
+    </p>
+
+    <h2>18. Complete Internal Flow of the Auth Service in Spring Terms</h2>
+    <pre>Application startup
+  -> @SpringBootApplication bootstraps context
+  -> auto-configuration loads MVC, security, JPA, validation, actuator
+  -> component scan finds controllers, services, repositories, filter, config
+  -> beans are created and wired by dependency injection
+
+Register request
+  -> DispatcherServlet routes request to AuthResource
+  -> @RequestBody converts JSON to RegisterRequest
+  -> @Valid triggers DTO validation
+  -> AuthServiceImpl performs business rules
+  -> PasswordEncoder hashes password
+  -> UserRepository persists entity through JPA
+  -> JwtTokenService creates tokens
+  -> ResponseEntity returns JSON response
+
+Protected request
+  -> SecurityFilterChain runs first
+  -> JwtAuthenticationFilter authenticates request from Bearer token
+  -> SecurityContextHolder stores identity
+  -> Principal is resolved for controller method
+  -> service method executes with authenticated user context
+
+Failure path
+  -> exception is thrown from service/controller
+  -> @RestControllerAdvice catches it
+  -> consistent HTTP error response is returned</pre>
+
+    <h2>19. Why These Spring Boot Concepts Are a Good Fit for This Service</h2>
+    <table>
+        <thead>
+        <tr>
+            <th style="width: 28%">Concept</th>
+            <th>Why it is a good fit for auth-service</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Auto-configuration</td>
+            <td>Reduces infrastructure boilerplate so the service focuses on auth logic instead of low-level setup.</td>
+        </tr>
+        <tr>
+            <td>Dependency injection</td>
+            <td>Makes security, persistence, and configuration easy to connect without hard-coding object creation.</td>
+        </tr>
+        <tr>
+            <td>Spring MVC</td>
+            <td>Fits naturally because the service exposes a REST API.</td>
+        </tr>
+        <tr>
+            <td>Spring Security</td>
+            <td>Provides a production-grade authentication pipeline instead of custom login code.</td>
+        </tr>
+        <tr>
+            <td>Spring Data JPA</td>
+            <td>Makes user persistence and revoked-token persistence concise and maintainable.</td>
+        </tr>
+        <tr>
+            <td>Profiles and configuration properties</td>
+            <td>Let the same codebase work for local, MySQL, and OAuth-enabled modes with minimal friction.</td>
+        </tr>
+        <tr>
+            <td>Actuator</td>
+            <td>Supports operational health checks, which matter in microservice deployments.</td>
+        </tr>
+        <tr>
+            <td>Spring Boot testing</td>
+            <td>Verifies the real integration of controllers, filters, repositories, and config instead of only isolated units.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>20. Final Summary</h2>
+    <p>
+        The auth service is a good example of how Spring Boot is not just “used to start the app.” In this project, Spring Boot and the wider Spring stack:
+    </p>
+    <ul>
+        <li>start and configure the application</li>
+        <li>scan and create beans automatically</li>
+        <li>inject dependencies into the right classes</li>
+        <li>bind configuration safely into Java objects</li>
+        <li>handle web requests and JSON conversion</li>
+        <li>validate input before business logic runs</li>
+        <li>persist entities through repositories and transactions</li>
+        <li>secure routes and authenticate requests</li>
+        <li>provide operational health endpoints</li>
+        <li>support end-to-end integration testing</li>
+    </ul>
+    <p>
+        In short, Spring Boot gives this auth-service its runtime skeleton, while Spring MVC, Security, Data JPA, Validation,
+        Actuator, and Testing fill in the web, persistence, security, and operational parts of the service.
+    </p>
+
+    <div class="note">
+        This document is intentionally focused on the Spring Boot and Spring ecosystem concepts used in <code>auth-service</code> only.
+        That means it is a service-specific learning guide, not a generic Spring Boot tutorial. We can create the same style of document
+        for the next service one by one.
+    </div>
+</div>
+</body>
+</html>

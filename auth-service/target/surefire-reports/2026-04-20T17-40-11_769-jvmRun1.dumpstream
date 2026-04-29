@@ -1,0 +1,24 @@
+# Created at 2026-04-20T17:40:39.981
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '#'.
+
+# Created at 2026-04-20T17:40:40.970
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '# There is insufficient memory for the Java Runtime Environment to continue.'.
+
+# Created at 2026-04-20T17:40:40.972
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '# Native memory allocation (malloc) failed to allocate 549776 bytes for Chunk::new'.
+
+# Created at 2026-04-20T17:40:40.975
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '# An error report file with more information is saved as:'.
+
+# Created at 2026-04-20T17:40:40.978
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '# D:\ConnectSphereCodex\auth-service\hs_err_pid3628.log'.
+
+# Created at 2026-04-20T17:40:40.979
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '#'.
+
+# Created at 2026-04-20T17:40:40.982
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '# Compiler replay data is saved as:'.
+
+# Created at 2026-04-20T17:40:40.984
+Corrupted channel by directly writing to native stream in forked JVM 1. Stream '# D:\ConnectSphereCodex\auth-service\replay_pid3628.log'.
+

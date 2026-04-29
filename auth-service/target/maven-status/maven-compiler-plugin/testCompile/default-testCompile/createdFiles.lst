@@ -1,0 +1,3 @@
+com\connectsphere\auth\AuthResourceIntegrationTest.class
+com\connectsphere\auth\JsonTestHelper.class
+com\connectsphere\auth\OAuthAccountServiceTest.class
