@@ -1,0 +1,67 @@
+server:
+  port: 8088
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: search-service
+  profiles:
+    active: mysql
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  data:
+    elasticsearch:
+      repositories:
+        enabled: ${ELASTICSEARCH_REPOSITORIES_ENABLED:false}
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    username: ${ELASTIC_USERNAME:}
+    password: ${ELASTIC_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  search:
+    provider: ${APP_SEARCH_PROVIDER:database}
+  services:
+    auth-base-url: http://localhost:8081
+    post-base-url: http://localhost:8082
+  events:
+    exchange: ${APP_EVENTS_EXCHANGE:connectsphere.events}
+    search-queue: ${APP_SEARCH_QUEUE:connectsphere.search.index}
+    search-routing-key: ${APP_SEARCH_ROUTING_KEY:search.post.index}
+
+logging:
+  level:
+    org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver: error
+    org.springframework.web.context.request.async: error
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: false
+  instance:
+    prefer-ip-address: true
