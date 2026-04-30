@@ -1,0 +1,81 @@
+pipeline {
+  agent any
+
+  environment {
+    BACKEND_REPO_URL = 'https://github.com/AnuragRajput-cyber/ConnectSphere.git'
+    FRONTEND_REPO_URL = 'https://github.com/AnuragRajput-cyber/ConnectSphereFrontend.git'
+    BACKEND_BRANCH = 'main'
+    FRONTEND_BRANCH = 'main'
+    COMPOSE_FILE = 'docker-compose.prod.yml'
+    DEPLOY_ENV_FILE = 'deployment/.env.production'
+  }
+
+  stages {
+    stage('Clean Workspace') {
+      steps {
+        deleteDir()
+      }
+    }
+
+    stage('Checkout Backend') {
+      steps {
+        git branch: "${BACKEND_BRANCH}", url: "${BACKEND_REPO_URL}"
+      }
+    }
+
+    stage('Checkout Frontend Repo Into Expected Folder') {
+      steps {
+        dir('connectsphere-web') {
+          deleteDir()
+          git branch: "${FRONTEND_BRANCH}", url: "${FRONTEND_REPO_URL}"
+        }
+      }
+    }
+
+    stage('Backend Tests') {
+      steps {
+        sh 'mvn test'
+      }
+    }
+
+    stage('Frontend Build') {
+      steps {
+        dir('connectsphere-web') {
+          sh 'npm ci'
+          sh 'npm test -- --watch=false'
+          sh 'npm run build'
+        }
+      }
+    }
+
+    stage('Compose Validation') {
+      steps {
+        sh 'docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} config >/tmp/connectsphere-compose-check.txt'
+      }
+    }
+
+    stage('Build Images') {
+      steps {
+        sh 'docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} build'
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        sh 'docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} up -d'
+      }
+    }
+
+    stage('Smoke Checks') {
+      steps {
+        sh 'curl -fsS http://127.0.0.1:8088 >/tmp/connectsphere-frontend.html'
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'docs/*.md,docs/*.html,docs/*.pdf,deployment/**/*.yml,deployment/**/*.sh', allowEmptyArchive: true
+    }
+  }
+}

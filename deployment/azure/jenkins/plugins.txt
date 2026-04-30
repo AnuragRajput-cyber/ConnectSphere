@@ -1,0 +1,11 @@
+workflow-aggregator
+git
+github
+github-branch-source
+pipeline-stage-view
+credentials-binding
+ssh-agent
+matrix-auth
+blueocean
+docker-workflow
+configuration-as-code

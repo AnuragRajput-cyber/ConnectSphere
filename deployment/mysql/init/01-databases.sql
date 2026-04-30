@@ -1,0 +1,9 @@
+CREATE DATABASE IF NOT EXISTS connectsphere_auth;
+CREATE DATABASE IF NOT EXISTS connectsphere_post;
+CREATE DATABASE IF NOT EXISTS connectsphere_comment;
+CREATE DATABASE IF NOT EXISTS connectsphere_like;
+CREATE DATABASE IF NOT EXISTS connectsphere_follow;
+CREATE DATABASE IF NOT EXISTS connectsphere_notification;
+CREATE DATABASE IF NOT EXISTS connectsphere_media;
+CREATE DATABASE IF NOT EXISTS connectsphere_search;
+CREATE DATABASE IF NOT EXISTS connectsphere_chat;
