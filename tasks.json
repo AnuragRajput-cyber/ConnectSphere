@@ -1,0 +1,121 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run All Services",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "service-registry",
+        "api-gateway",
+        "auth-service",
+        "chat-service",
+        "comment-service",
+        "follow-service",
+        "like-service",
+        "media-service",
+        "notification-service",
+        "post-service",
+        "search-service"
+      ]
+    },
+
+    {
+      "label": "service-registry",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/service-registry" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "api-gateway",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/api-gateway" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "auth-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/auth-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "chat-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/chat-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "comment-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/comment-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "follow-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/follow-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "like-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/like-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "media-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/media-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "notification-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/notification-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "post-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/post-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    },
+
+    {
+      "label": "search-service",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/search-service" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated", "group": "microservices" }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.connectsphere</groupId>
+    <artifactId>connectsphere</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>connectsphere</name>
+    <description>Root Maven aggregator for the ConnectSphere microservices workspace</description>
+
+    <modules>
+        <module>service-registry</module>
+        <module>auth-service</module>
+        <module>post-service</module>
+        <module>comment-service</module>
+        <module>like-service</module>
+        <module>follow-service</module>
+        <module>notification-service</module>
+        <module>media-service</module>
+        <module>search-service</module>
+        <module>chat-service</module>
+        <module>api-gateway</module>
+    </modules>
+</project>

@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.vscode
+**/target
+**/node_modules
+**/dist
+**/.angular
+**/*.log
+logs
+uploads
+media-service/uploads
+**/hs_err_pid*
+**/replay_pid*
