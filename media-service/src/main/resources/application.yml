@@ -46,6 +46,12 @@ app:
       region: ${AWS_REGION:}
       key-prefix: ${AWS_S3_KEY_PREFIX:connectsphere}
       public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
+    azure:
+      connection-string: ${AZURE_STORAGE_CONNECTION_STRING:}
+      container: ${AZURE_STORAGE_CONTAINER:}
+      account-name: ${AZURE_STORAGE_ACCOUNT:}
+      key-prefix: ${AZURE_STORAGE_KEY_PREFIX:connectsphere}
+      public-base-url: ${AZURE_STORAGE_PUBLIC_BASE_URL:}
 
 eureka:
   client:

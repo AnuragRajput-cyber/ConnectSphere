@@ -6,11 +6,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record MediaStorageProperties(
         String provider,
         String localDirectory,
-        S3Properties s3
+        S3Properties s3,
+        AzureProperties azure
 ) {
     public record S3Properties(
             String bucket,
             String region,
+            String keyPrefix,
+            String publicBaseUrl
+    ) {
+    }
+
+    public record AzureProperties(
+            String connectionString,
+            String container,
+            String accountName,
             String keyPrefix,
             String publicBaseUrl
     ) {

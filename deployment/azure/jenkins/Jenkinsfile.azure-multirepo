@@ -34,7 +34,7 @@ pipeline {
 
     stage('Backend Tests') {
       steps {
-        sh 'mvn clean install -DskipTests'
+        sh 'mvn test'
       }
     }
 
