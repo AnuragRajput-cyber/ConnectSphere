@@ -31,5 +31,13 @@ public interface UserRepository extends JpaRepository<User, String> {
             """)
     List<User> searchByUsername(@Param("query") String query);
 
+    @Query("""
+            select u
+            from User u
+            where u.active = true
+            order by u.username asc
+            """)
+    List<User> findAllActiveUsersOrdered();
+
     void deleteByUserId(String userId);
 }

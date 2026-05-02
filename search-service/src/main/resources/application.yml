@@ -18,7 +18,7 @@ spring:
         enabled: ${ELASTICSEARCH_REPOSITORIES_ENABLED:false}
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
-    username: ${ELASTIC_USERNAME:}
+    username: ${ELASTIC_USERNAME:elastic}
     password: ${ELASTIC_PASSWORD:}
   jpa:
     hibernate:

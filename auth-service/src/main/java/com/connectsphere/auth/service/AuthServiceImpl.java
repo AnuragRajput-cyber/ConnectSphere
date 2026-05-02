@@ -316,7 +316,9 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public List<UserSummaryResponse> searchUsers(String query) {
         if (query == null || query.isBlank()) {
-            throw new BadRequestException("Search query must not be blank.");
+            return userRepository.findAllActiveUsersOrdered().stream()
+                    .map(UserSummaryResponse::from)
+                    .toList();
         }
 
         return userRepository.searchByUsername(query.trim()).stream()
