@@ -125,7 +125,10 @@ pipeline {
       steps {
         sh '''
           for i in $(seq 1 30); do
-            if curl -fsS http://host.docker.internal:8088 >/tmp/connectsphere-frontend.html; then
+            if docker run --rm --network ${COMPOSE_PROJECT_NAME}_connectsphere curlimages/curl:8.11.1 \
+              -fsS http://frontend >/tmp/connectsphere-frontend.html \
+              && docker run --rm --network ${COMPOSE_PROJECT_NAME}_connectsphere curlimages/curl:8.11.1 \
+              -fsS http://api-gateway:8080/actuator/health >/tmp/connectsphere-gateway-health.json; then
               exit 0
             fi
             sleep 2
@@ -133,6 +136,7 @@ pipeline {
 
           docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} ps
           docker logs --tail=80 connectsphere-frontend-1 || true
+          docker logs --tail=120 connectsphere-api-gateway-1 || true
           exit 1
         '''
       }
