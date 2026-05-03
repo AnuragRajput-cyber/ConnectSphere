@@ -46,12 +46,20 @@ export class PostDetailPage {
   readonly expandedThreads = signal<Record<string, true>>({});
   readonly loadingRepliesFor = signal<Record<string, true>>({});
   readonly repliesByCommentId = signal<Record<string, CommentResponse[]>>({});
+  readonly focusedCommentId = signal<string | null>(null);
   readonly shareRecipients = signal<UserSummary[]>([]);
   readonly shareOpen = signal(false);
   readonly sharingToId = signal<string | null>(null);
 
   constructor() {
     this.route.paramMap.subscribe((params) => this.postId.set(params.get('postId')));
+    this.route.queryParamMap.subscribe((params) => {
+      const commentId = params.get('comment');
+      this.focusedCommentId.set(commentId);
+      if (commentId && this.comments().length) {
+        void this.revealCommentThread(commentId);
+      }
+    });
 
     effect(() => {
       this.postId();
@@ -227,8 +235,8 @@ export class PostDetailPage {
   async openReply(commentId: string): Promise<void> {
     this.replyingToId.set(this.replyingToId() === commentId ? null : commentId);
     this.replyDraft.set('');
-    if (this.replyingToId()) {
-      await this.toggleThread(commentId);
+    if (this.replyingToId() && !this.threadExpanded(commentId)) {
+      await this.openThread(commentId);
     }
   }
 
@@ -493,6 +501,10 @@ export class PostDetailPage {
 
       this.author.set(author);
       this.comments.set(comments);
+      const focusedCommentId = this.focusedCommentId();
+      if (focusedCommentId) {
+        await this.revealCommentThread(focusedCommentId);
+      }
       this.relatedPosts.set(
         relatedPosts
           .filter((item) => item.postId !== post.postId && !item.deleted)
@@ -525,6 +537,27 @@ export class PostDetailPage {
       );
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private async openThread(commentId: string): Promise<void> {
+    this.expandedThreads.update((state) => ({ ...state, [commentId]: true }));
+    if (!this.repliesByCommentId()[commentId]) {
+      await this.loadReplies(commentId);
+    }
+  }
+
+  private async revealCommentThread(commentId: string): Promise<void> {
+    const topLevel = this.comments().find((comment) => comment.commentId === commentId);
+    if (topLevel) {
+      await this.openThread(topLevel.commentId);
+      return;
+    }
+
+    const comment = await this.api.getComment(commentId).catch(() => null);
+    const parentCommentId = comment?.parentCommentId;
+    if (parentCommentId) {
+      await this.openThread(parentCommentId);
     }
   }
 

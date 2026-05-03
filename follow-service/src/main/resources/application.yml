@@ -26,6 +26,9 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    rabbit:
+      enabled: ${RABBIT_HEALTH_ENABLED:false}
 
 springdoc:
   api-docs:
@@ -35,7 +38,7 @@ springdoc:
 
 app:
   services:
-    notification-base-url: http://localhost:8086
+    notification-base-url: ${NOTIFICATION_SERVICE_BASE_URL:http://localhost:8086}
   events:
     exchange: ${APP_EVENTS_EXCHANGE:connectsphere.events}
     notification-routing-key: ${APP_NOTIFICATION_ROUTING_KEY:notification.social}

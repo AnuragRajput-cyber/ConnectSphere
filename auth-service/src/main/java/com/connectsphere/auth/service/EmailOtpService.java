@@ -110,4 +110,3 @@ public class EmailOtpService {
     public record OtpIssueResult(String otpId, Instant expiresAt, String debugCode) {
     }
 }
-

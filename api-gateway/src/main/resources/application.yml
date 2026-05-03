@@ -80,3 +80,7 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: true
+
+app:
+  services:
+    auth-base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:8081}

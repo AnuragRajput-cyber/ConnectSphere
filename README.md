@@ -206,6 +206,20 @@ http://localhost:8761
 docker-compose up -d --build
 ```
 
+For the production-style compose file:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+The production-style compose file also has safe local defaults for development. For Azure/AWS production, copy one of the templates in `deployment/` to `deployment/.env.production`, fill real values, and run:
+
+```bash
+docker compose --env-file deployment/.env.production -f docker-compose.prod.yml up -d --build
+```
+
+For Azure production deployment, follow [docs/azure-production-checklist.md](docs/azure-production-checklist.md).
+
 ---
 
 # 🔐 Authentication Flow

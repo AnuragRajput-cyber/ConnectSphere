@@ -30,3 +30,6 @@ app:
     return-code-in-response: true
   mail:
     enabled: false
+  oauth:
+    success-redirect-url: http://localhost:4200/auth/callback
+    failure-redirect-url: http://localhost:4200/login

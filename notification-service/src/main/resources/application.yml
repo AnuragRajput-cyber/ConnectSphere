@@ -35,6 +35,11 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    redis:
+      enabled: ${REDIS_HEALTH_ENABLED:false}
+    rabbit:
+      enabled: ${RABBIT_HEALTH_ENABLED:false}
 
 springdoc:
   api-docs:
