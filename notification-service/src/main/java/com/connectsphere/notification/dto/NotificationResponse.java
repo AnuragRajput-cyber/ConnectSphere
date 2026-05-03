@@ -1,6 +1,7 @@
 package com.connectsphere.notification.dto;
 
 import com.connectsphere.notification.entity.Notification;
+import java.io.Serializable;
 import java.time.Instant;
 
 public record NotificationResponse(
@@ -14,7 +15,7 @@ public record NotificationResponse(
         String deepLinkUrl,
         boolean read,
         Instant createdAt
-) {
+) implements Serializable {
     public static NotificationResponse from(Notification notification) {
         return new NotificationResponse(
                 notification.getNotificationId(),
