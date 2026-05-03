@@ -79,6 +79,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       EUREKA_SERVER_URL: http://service-registry:8761/eureka
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-mysql}
+      AUTH_SERVICE_BASE_URL: http://auth-service:8081
       POST_SERVICE_BASE_URL: http://post-service:8082
       COMMENT_SERVICE_BASE_URL: http://comment-service:8083
       LIKE_SERVICE_BASE_URL: http://like-service:8084

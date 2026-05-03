@@ -22,6 +22,7 @@ public class AdminInsightsService {
 
     private final UserRepository userRepository;
     private final RestClient restClient;
+    private final String authServiceBaseUrl;
     private final String postServiceBaseUrl;
     private final String commentServiceBaseUrl;
     private final String likeServiceBaseUrl;
@@ -34,18 +35,20 @@ public class AdminInsightsService {
 
     public AdminInsightsService(
             UserRepository userRepository,
-            @Value("${app.services.post-base-url:http://localhost:8082}") String postServiceBaseUrl,
-            @Value("${app.services.comment-base-url:http://localhost:8083}") String commentServiceBaseUrl,
-            @Value("${app.services.like-base-url:http://localhost:8084}") String likeServiceBaseUrl,
-            @Value("${app.services.follow-base-url:http://localhost:8085}") String followServiceBaseUrl,
-            @Value("${app.services.notification-base-url:http://localhost:8086}") String notificationServiceBaseUrl,
-            @Value("${app.services.media-base-url:http://localhost:8087}") String mediaServiceBaseUrl,
-            @Value("${app.services.search-base-url:http://localhost:8088}") String searchServiceBaseUrl,
-            @Value("${app.services.chat-base-url:http://localhost:8089}") String chatServiceBaseUrl,
-            @Value("${app.services.gateway-base-url:http://localhost:8080}") String gatewayBaseUrl
+            @Value("${AUTH_SERVICE_BASE_URL:${app.services.auth-base-url:http://localhost:8081}}") String authServiceBaseUrl,
+            @Value("${POST_SERVICE_BASE_URL:${app.services.post-base-url:http://localhost:8082}}") String postServiceBaseUrl,
+            @Value("${COMMENT_SERVICE_BASE_URL:${app.services.comment-base-url:http://localhost:8083}}") String commentServiceBaseUrl,
+            @Value("${LIKE_SERVICE_BASE_URL:${app.services.like-base-url:http://localhost:8084}}") String likeServiceBaseUrl,
+            @Value("${FOLLOW_SERVICE_BASE_URL:${app.services.follow-base-url:http://localhost:8085}}") String followServiceBaseUrl,
+            @Value("${NOTIFICATION_SERVICE_BASE_URL:${app.services.notification-base-url:http://localhost:8086}}") String notificationServiceBaseUrl,
+            @Value("${MEDIA_SERVICE_BASE_URL:${app.services.media-base-url:http://localhost:8087}}") String mediaServiceBaseUrl,
+            @Value("${SEARCH_SERVICE_BASE_URL:${app.services.search-base-url:http://localhost:8088}}") String searchServiceBaseUrl,
+            @Value("${CHAT_SERVICE_BASE_URL:${app.services.chat-base-url:http://localhost:8089}}") String chatServiceBaseUrl,
+            @Value("${GATEWAY_SERVICE_BASE_URL:${app.services.gateway-base-url:http://localhost:8080}}") String gatewayBaseUrl
     ) {
         this.userRepository = userRepository;
         this.restClient = RestClient.builder().build();
+        this.authServiceBaseUrl = authServiceBaseUrl;
         this.postServiceBaseUrl = postServiceBaseUrl;
         this.commentServiceBaseUrl = commentServiceBaseUrl;
         this.likeServiceBaseUrl = likeServiceBaseUrl;
@@ -75,7 +78,7 @@ public class AdminInsightsService {
     public AdminSystemOverviewResponse buildSystemOverview() {
         return new AdminSystemOverviewResponse(List.of(
                 probe("api-gateway", gatewayBaseUrl),
-                probe("auth-service", "http://localhost:8081"),
+                probe("auth-service", authServiceBaseUrl),
                 probe("post-service", postServiceBaseUrl),
                 probe("comment-service", commentServiceBaseUrl),
                 probe("like-service", likeServiceBaseUrl),
