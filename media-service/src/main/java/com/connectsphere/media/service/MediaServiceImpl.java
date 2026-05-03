@@ -87,10 +87,7 @@ public class MediaServiceImpl implements MediaService {
     @Transactional(readOnly = true)
     public List<StoryResponse> getActiveStories(List<String> authorIds) {
         if (authorIds == null || authorIds.isEmpty()) {
-            return storyRepository.findAll().stream()
-                    .filter(Story::isActive)
-                    .map(StoryResponse::from)
-                    .toList();
+            return List.of();
         }
         return storyRepository.findByAuthorIdInAndActiveTrueOrderByCreatedAtDesc(authorIds).stream()
                 .map(StoryResponse::from)

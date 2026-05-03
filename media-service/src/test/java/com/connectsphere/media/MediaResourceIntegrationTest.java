@@ -74,6 +74,15 @@ class MediaResourceIntegrationTest {
         JsonNode storyNode = objectMapper.readTree(storyJson);
         String storyId = storyNode.get("storyId").asText();
 
+        mockMvc.perform(get("/api/v1/stories/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        mockMvc.perform(get("/api/v1/stories/active")
+                        .param("authorIds", "user-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].storyId").value(storyId));
+
         mockMvc.perform(post("/api/v1/stories/{storyId}/view", storyId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.viewsCount").value(1));
