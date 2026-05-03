@@ -7,7 +7,7 @@ pipeline {
     BACKEND_BRANCH = 'main'
     FRONTEND_BRANCH = 'main'
     COMPOSE_FILE = 'docker-compose.prod.yml'
-    DEPLOY_ENV_FILE = 'deployment/.env.production'
+    DEPLOY_ENV_FILE = '/run/secrets/connectsphere.env'
     CI_MYSQL_CONTAINER = 'connectsphere-ci-mysql'
     CI_MYSQL_PORT = '3307'
     CI_MYSQL_PASSWORD = 'root123'
@@ -32,6 +32,15 @@ pipeline {
           deleteDir()
           git branch: "${FRONTEND_BRANCH}", url: "${FRONTEND_REPO_URL}"
         }
+      }
+    }
+
+    stage('Validate Production Env File') {
+      steps {
+        sh '''
+          test -f ${DEPLOY_ENV_FILE}
+          test -s ${DEPLOY_ENV_FILE}
+        '''
       }
     }
 
