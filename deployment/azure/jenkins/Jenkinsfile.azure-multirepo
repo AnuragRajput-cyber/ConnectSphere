@@ -123,7 +123,18 @@ pipeline {
 
     stage('Smoke Checks') {
       steps {
-        sh 'curl -fsS http://127.0.0.1:8088 >/tmp/connectsphere-frontend.html'
+        sh '''
+          for i in $(seq 1 30); do
+            if curl -fsS http://host.docker.internal:8088 >/tmp/connectsphere-frontend.html; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} ps
+          docker logs --tail=80 connectsphere-frontend-1 || true
+          exit 1
+        '''
       }
     }
   }
