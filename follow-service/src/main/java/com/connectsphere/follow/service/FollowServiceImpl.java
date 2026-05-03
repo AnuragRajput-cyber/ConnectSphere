@@ -185,9 +185,7 @@ public class FollowServiceImpl implements FollowService {
                     follow.getFolloweeId(),
                     follow.getFollowerId(),
                     request ? "FOLLOW_REQUEST" : "FOLLOW",
-                    request
-                            ? follow.getFollowerId() + " requested to follow you"
-                            : follow.getFollowerId() + " started following you",
+                    request ? "requested to follow you" : "started following you",
                     follow.getFollowerId(),
                     "USER",
                     null
@@ -203,7 +201,7 @@ public class FollowServiceImpl implements FollowService {
                     follow.getFollowerId(),
                     follow.getFolloweeId(),
                     "FOLLOW_ACCEPTED",
-                    follow.getFolloweeId() + " accepted your follow request",
+                    "accepted your follow request",
                     follow.getFolloweeId(),
                     "USER",
                     null

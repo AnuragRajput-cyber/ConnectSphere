@@ -207,6 +207,7 @@ export class PostDetailPage {
         authorId: user.userId,
         content: text,
       });
+      await this.notifyMentions(user.userId, text, comment.commentId, 'COMMENT').catch(() => undefined);
       this.comments.update((items) => [...items, comment]);
       this.post.update((value) => value ? { ...value, commentsCount: value.commentsCount + 1 } : value);
       this.commentDraft.set('');
@@ -324,6 +325,7 @@ export class PostDetailPage {
         content: text,
         parentCommentId,
       });
+      await this.notifyMentions(user.userId, text, reply.commentId, 'COMMENT').catch(() => undefined);
       this.repliesByCommentId.update((state) => ({
         ...state,
         [parentCommentId]: [...(state[parentCommentId] ?? []), reply],
@@ -639,5 +641,44 @@ export class PostDetailPage {
     } catch {
       this.toast.show('Report failed', 'Could not submit the moderation report.', 'warning');
     }
+  }
+
+  private async notifyMentions(
+    actorId: string,
+    content: string,
+    targetId: string,
+    targetType: 'POST' | 'COMMENT',
+  ): Promise<void> {
+    const usernames = this.extractMentions(content);
+    if (!usernames.length) {
+      return;
+    }
+
+    for (const username of usernames) {
+      const matches = await this.api.searchUsersViaSearch(username).catch(() => []);
+      const target = matches.find((item) => item.username.toLowerCase() === username.toLowerCase());
+      if (!target || target.userId === actorId) {
+        continue;
+      }
+
+      await this.api.createNotification({
+        recipientId: target.userId,
+        actorId,
+        type: 'MENTION',
+        message: targetType === 'COMMENT' ? 'mentioned you in a comment' : 'mentioned you in a post',
+        targetId,
+        targetType,
+      }).catch(() => undefined);
+    }
+  }
+
+  private extractMentions(content: string): string[] {
+    const found = new Set<string>();
+    const regex = /(^|\s)@([a-zA-Z0-9_]{3,50})\b/g;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(content)) !== null) {
+      found.add(match[2]);
+    }
+    return Array.from(found);
   }
 }
