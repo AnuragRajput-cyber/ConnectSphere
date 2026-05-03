@@ -8,6 +8,9 @@ pipeline {
     FRONTEND_BRANCH = 'main'
     COMPOSE_FILE = 'docker-compose.prod.yml'
     DEPLOY_ENV_FILE = 'deployment/.env.production'
+    CI_MYSQL_CONTAINER = 'connectsphere-ci-mysql'
+    CI_MYSQL_PORT = '3307'
+    CI_MYSQL_PASSWORD = 'root123'
   }
 
   stages {
@@ -32,9 +35,41 @@ pipeline {
       }
     }
 
+    stage('Start CI Database') {
+      steps {
+        sh '''
+          docker rm -f ${CI_MYSQL_CONTAINER} >/dev/null 2>&1 || true
+          docker run -d --name ${CI_MYSQL_CONTAINER} \
+            -e MYSQL_ROOT_PASSWORD=${CI_MYSQL_PASSWORD} \
+            -p ${CI_MYSQL_PORT}:3306 \
+            mysql:8.4
+
+          for i in $(seq 1 60); do
+            if docker exec ${CI_MYSQL_CONTAINER} mysqladmin ping -uroot -p${CI_MYSQL_PASSWORD} --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs ${CI_MYSQL_CONTAINER}
+          exit 1
+        '''
+      }
+    }
+
     stage('Backend Tests') {
       steps {
-        sh 'mvn test'
+        sh '''
+          MYSQL_HOST=host.docker.internal \
+          MYSQL_PORT=${CI_MYSQL_PORT} \
+          MYSQL_USERNAME=root \
+          MYSQL_PASSWORD=${CI_MYSQL_PASSWORD} \
+          MAIL_HEALTH_ENABLED=false \
+          REDIS_HEALTH_ENABLED=false \
+          RABBIT_HEALTH_ENABLED=false \
+          ELASTICSEARCH_HEALTH_ENABLED=false \
+          mvn test
+        '''
       }
     }
 
@@ -75,6 +110,7 @@ pipeline {
 
   post {
     always {
+      sh 'docker rm -f ${CI_MYSQL_CONTAINER} >/dev/null 2>&1 || true'
       archiveArtifacts artifacts: 'docs/*.md,docs/*.html,docs/*.pdf,deployment/**/*.yml,deployment/**/*.sh', allowEmptyArchive: true
     }
   }
