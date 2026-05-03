@@ -141,7 +141,11 @@ public class PostResource {
 
     @GetMapping("/count/{authorId}")
     @Operation(summary = "Count an author's posts", description = "Returns how many non-deleted posts belong to the supplied author.")
-    public ResponseEntity<PostCountResponse> getPostCount(@PathVariable String authorId) {
-        return ResponseEntity.ok(new PostCountResponse(authorId, postService.getPostCount(authorId)));
+    public ResponseEntity<PostCountResponse> getPostCount(
+            @PathVariable String authorId,
+            @RequestHeader(value = "X-User-Id", required = false) String viewerId,
+            @RequestHeader(value = "X-User-Role", required = false) String viewerRole
+    ) {
+        return ResponseEntity.ok(new PostCountResponse(authorId, postService.getPostCount(authorId, viewerId, viewerRole)));
     }
 }

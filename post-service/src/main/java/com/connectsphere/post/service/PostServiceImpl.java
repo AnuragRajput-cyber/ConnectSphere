@@ -223,9 +223,9 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = "postCounts", key = "#authorId")
-    public long getPostCount(String authorId) {
-        return postRepository.countByAuthorIdAndDeletedFalse(authorId.trim());
+    @Cacheable(cacheNames = "postCounts", key = "#authorId + '::' + (#viewerId == null ? 'guest' : #viewerId) + '::' + (#viewerRole == null ? 'guest' : #viewerRole)")
+    public long getPostCount(String authorId, String viewerId, String viewerRole) {
+        return getPostsByUser(authorId, viewerId, viewerRole).size();
     }
 
     private Post requireActivePost(String postId) {

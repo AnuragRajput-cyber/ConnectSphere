@@ -1,6 +1,7 @@
 package com.connectsphere.post.dto;
 
 import com.connectsphere.post.entity.Post;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +19,9 @@ public record PostResponse(
         Instant createdAt,
         Instant updatedAt,
         boolean deleted
-) {
+) implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public static PostResponse from(Post post) {
         return new PostResponse(
                 post.getPostId(),

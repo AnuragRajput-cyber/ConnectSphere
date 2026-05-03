@@ -58,5 +58,9 @@ public interface PostService {
 
     PostResponse changeVisibility(String postId, PostVisibility visibility, String actorId, String actorRole);
 
-    long getPostCount(String authorId);
+    default long getPostCount(String authorId) {
+        return getPostCount(authorId, null, null);
+    }
+
+    long getPostCount(String authorId, String viewerId, String viewerRole);
 }
