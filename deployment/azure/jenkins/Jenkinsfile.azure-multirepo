@@ -15,12 +15,6 @@ pipeline {
   }
 
   stages {
-    stage('Clean Workspace') {
-      steps {
-        deleteDir()
-      }
-    }
-
     stage('Checkout Backend') {
       steps {
         git branch: "${BACKEND_BRANCH}", url: "${BACKEND_REPO_URL}"
@@ -86,7 +80,7 @@ pipeline {
     stage('Frontend Build') {
       steps {
         dir('connectsphere-web') {
-          sh 'npm ci'
+          sh 'npm ci --prefer-offline'
           sh 'npm test -- --watch=false'
           sh 'npm run build'
         }

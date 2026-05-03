@@ -10,6 +10,8 @@ services:
       - "127.0.0.1:50000:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
+      - jenkins_m2:/root/.m2
+      - jenkins_npm:/root/.npm
       - /var/run/docker.sock:/var/run/docker.sock
       - ../../.env.production:/run/secrets/connectsphere.env:ro
     extra_hosts:
@@ -19,3 +21,5 @@ services:
 
 volumes:
   jenkins_home:
+  jenkins_m2:
+  jenkins_npm:
