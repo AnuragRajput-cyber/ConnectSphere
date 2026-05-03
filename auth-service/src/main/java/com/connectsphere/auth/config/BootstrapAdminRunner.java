@@ -41,23 +41,21 @@ public class BootstrapAdminRunner implements CommandLineRunner {
         }
 
         String email = properties.email().trim().toLowerCase();
-        String username = resolveUsername(email);
-        Optional<User> existingAdmin = userRepository.findByEmail(email);
+        String configuredUsername = defaultIfBlank(properties.username(), "admin");
+
+        Optional<User> existingAdmin = userRepository.findByEmailIgnoreCase(email);
         if (existingAdmin.isPresent()) {
-            User admin = existingAdmin.get();
-            admin.setRole(Role.ADMIN);
-            admin.setActive(true);
-            admin.setEmailVerified(true);
-            admin.setProvider(AuthProvider.LOCAL);
-            admin.setPasswordHash(passwordEncoder.encode(properties.password().trim()));
-            admin.setFullName(defaultIfBlank(properties.fullName(), admin.getFullName()));
-            if (!admin.getUsername().equals(username) && !userRepository.existsByUsername(username)) {
-                admin.setUsername(username);
-            }
-            userRepository.save(admin);
+            updateAdmin(existingAdmin.get(), configuredUsername);
             return;
         }
 
+        Optional<User> existingUsernameOwner = userRepository.findByUsernameIgnoreCase(configuredUsername);
+        if (existingUsernameOwner.isPresent()) {
+            updateAdmin(existingUsernameOwner.get(), configuredUsername);
+            return;
+        }
+
+        String username = resolveAvailableUsername(configuredUsername, email);
         User admin = new User();
         admin.setEmail(email);
         admin.setUsername(username);
@@ -76,21 +74,31 @@ public class BootstrapAdminRunner implements CommandLineRunner {
         return value == null || value.isBlank() ? fallback : value.trim();
     }
 
-    private String resolveUsername(String email) {
-        String configured = defaultIfBlank(properties.username(), "admin");
-        Optional<User> existingUsernameOwner = userRepository.findByUsername(configured);
-        if (existingUsernameOwner.isEmpty() || existingUsernameOwner.get().getEmail().equalsIgnoreCase(email)) {
+    private String resolveAvailableUsername(String configured, String email) {
+        if (!userRepository.existsByUsernameIgnoreCase(configured)) {
             return configured;
         }
-
         String emailPrefix = email.split("@", 2)[0].replaceAll("[^A-Za-z0-9_]", "");
         String base = defaultIfBlank(emailPrefix, "admin");
         String candidate = base;
         int suffix = 1;
-        while (userRepository.existsByUsername(candidate)) {
+        while (userRepository.existsByUsernameIgnoreCase(candidate)) {
             candidate = base + suffix;
             suffix++;
         }
         return candidate;
+    }
+
+    private void updateAdmin(User admin, String configuredUsername) {
+        admin.setRole(Role.ADMIN);
+        admin.setActive(true);
+        admin.setEmailVerified(true);
+        admin.setProvider(AuthProvider.LOCAL);
+        admin.setPasswordHash(passwordEncoder.encode(properties.password().trim()));
+        admin.setFullName(defaultIfBlank(properties.fullName(), admin.getFullName()));
+        if (admin.getUsername() == null || admin.getUsername().isBlank()) {
+            admin.setUsername(configuredUsername);
+        }
+        userRepository.save(admin);
     }
 }

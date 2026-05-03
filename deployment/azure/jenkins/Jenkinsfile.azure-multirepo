@@ -6,6 +6,7 @@ pipeline {
     FRONTEND_REPO_URL = 'https://github.com/AnuragRajput-cyber/ConnectSphereFrontend.git'
     BACKEND_BRANCH = 'main'
     FRONTEND_BRANCH = 'main'
+    COMPOSE_PROJECT_NAME = 'connectsphere'
     COMPOSE_FILE = 'docker-compose.prod.yml'
     DEPLOY_ENV_FILE = '/run/secrets/connectsphere.env'
     CI_MYSQL_CONTAINER = 'connectsphere-ci-mysql'
@@ -106,7 +107,17 @@ pipeline {
 
     stage('Deploy') {
       steps {
-        sh 'docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} up -d'
+        sh '''
+          for container in \
+            connectsphere-mysql \
+            connectsphere-redis \
+            connectsphere-rabbitmq \
+            connectsphere-elasticsearch; do
+            docker rm -f "$container" >/dev/null 2>&1 || true
+          done
+
+          docker compose --env-file ${DEPLOY_ENV_FILE} -f ${COMPOSE_FILE} up -d
+        '''
       }
     }
 
