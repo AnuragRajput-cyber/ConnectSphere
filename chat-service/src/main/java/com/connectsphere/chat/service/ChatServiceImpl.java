@@ -49,10 +49,14 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public ChatMessageResponse saveMessage(ChatMessageRequest request) {
         ConversationResponse conversation = createOrGetConversation(new ConversationRequest(request.senderId(), request.recipientId()));
-        ChatMessage message = new ChatMessage();
-        message.setConversationId(request.conversationId() == null || request.conversationId().isBlank()
+        String conversationId = request.conversationId() == null || request.conversationId().isBlank()
                 ? conversation.conversationId()
-                : request.conversationId().trim());
+                : request.conversationId().trim();
+        if (!conversationId.equals(conversation.conversationId())) {
+            throw new IllegalArgumentException("Conversation does not match sender and recipient.");
+        }
+        ChatMessage message = new ChatMessage();
+        message.setConversationId(conversationId);
         message.setSenderId(request.senderId().trim());
         message.setRecipientId(request.recipientId().trim());
         message.setContent(request.content().trim());
