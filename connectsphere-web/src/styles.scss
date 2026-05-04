@@ -122,10 +122,7 @@ body {
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
   color: var(--text-primary);
-  background:
-    radial-gradient(circle at top left, rgba(29, 155, 240, 0.08), transparent 30%),
-    radial-gradient(circle at top right, rgba(124, 58, 237, 0.06), transparent 28%),
-    var(--bg);
+  background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -440,7 +437,7 @@ video {
   grid-template-columns: minmax(0, var(--feed-width)) var(--right-sidebar-width);
   gap: var(--space-6);
   max-width: 1044px;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .twitter-main {
