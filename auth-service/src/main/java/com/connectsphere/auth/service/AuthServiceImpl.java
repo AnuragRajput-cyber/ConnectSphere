@@ -40,6 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthServiceImpl implements AuthService {
 
+    private static final long REGISTER_OTP_TTL_SECONDS = 15L * 60L;
+    private static final String REGISTER_OTP_SUBJECT = "ConnectSphere verification code";
     private static final String USER_NOT_FOUND = "User not found.";
 
     private final UserRepository userRepository;
@@ -89,14 +91,14 @@ public class AuthServiceImpl implements AuthService {
         pending.setProfilePicUrl(blankToNull(request.profilePicUrl()));
         pending.setRole(request.role());
         pending.setProvider(request.provider());
-        pending.setExpiresAt(Instant.now().plusSeconds(15 * 60));
+        pending.setExpiresAt(Instant.now().plusSeconds(REGISTER_OTP_TTL_SECONDS));
         pending = pendingRegistrationRepository.save(pending);
 
         EmailOtpService.OtpIssueResult otpIssueResult = emailOtpService.issueOtp(
                 pending.getPendingId(),
                 pending.getEmail(),
                 OtpPurpose.REGISTER,
-                "ConnectSphere verification code"
+                REGISTER_OTP_SUBJECT
         );
         return new RegisterPendingResponse(
                 pending.getPendingId(),
@@ -166,7 +168,7 @@ public class AuthServiceImpl implements AuthService {
                     pending.getPendingId(),
                     pending.getEmail(),
                     OtpPurpose.REGISTER,
-                    "ConnectSphere verification code"
+                    REGISTER_OTP_SUBJECT
             );
             return new RegisterPendingResponse(
                     pending.getPendingId(),
@@ -187,7 +189,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getUserId(),
                 user.getEmail(),
                 OtpPurpose.REGISTER,
-                "ConnectSphere verification code"
+                REGISTER_OTP_SUBJECT
         );
         return new RegisterPendingResponse(
                 user.getUserId(),

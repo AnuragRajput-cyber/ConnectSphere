@@ -78,7 +78,7 @@ public class BootstrapAdminRunner implements CommandLineRunner {
         if (!userRepository.existsByUsernameIgnoreCase(configured)) {
             return configured;
         }
-        String emailPrefix = email.split("@", 2)[0].replaceAll("[^A-Za-z0-9_]", "");
+        String emailPrefix = email.split("@", 2)[0].replaceAll("[^\\w]", "");
         String base = defaultIfBlank(emailPrefix, "admin");
         String candidate = base;
         int suffix = 1;
