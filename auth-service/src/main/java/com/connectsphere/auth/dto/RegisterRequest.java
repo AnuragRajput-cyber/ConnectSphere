@@ -17,10 +17,9 @@ public record RegisterRequest(
         String password,
         @NotBlank @Size(max = 100)
         String fullName,
-        @Size(max = 500) 
+        @Size(max = 500)
         String bio,
-        @Size(max = 500) String 
-        profilePicUrl,
+        @Size(max = 2048) String profilePicUrl,
         @NotNull Role role,
         @NotNull AuthProvider provider
 ) {

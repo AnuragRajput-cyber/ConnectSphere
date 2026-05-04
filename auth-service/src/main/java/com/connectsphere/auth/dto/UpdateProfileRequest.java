@@ -9,8 +9,8 @@ public record UpdateProfileRequest(
         @NotBlank @Email String email,
         @NotBlank @Size(max = 100) String fullName,
         @Size(max = 500) String bio,
-        @Size(max = 500) String profilePicUrl,
-        @Size(max = 500) String bannerUrl,
+        @Size(max = 2048) String profilePicUrl,
+        @Size(max = 2048) String bannerUrl,
         boolean privateAccount
 ) {
 }

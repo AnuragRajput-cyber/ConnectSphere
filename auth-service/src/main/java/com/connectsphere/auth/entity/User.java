@@ -34,10 +34,10 @@ public class User {
     @Column(length = 500)
     private String bio;
 
-    @Column(name = "profile_pic_url", length = 500)
+    @Column(name = "profile_pic_url", length = 2048)
     private String profilePicUrl;
 
-    @Column(name = "banner_url", length = 500)
+    @Column(name = "banner_url", length = 2048)
     private String bannerUrl;
 
     @Column(name = "is_private_account", nullable = false)

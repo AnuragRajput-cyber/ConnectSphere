@@ -3,6 +3,7 @@ package com.connectsphere.auth;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -233,6 +234,50 @@ class AuthResourceIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Account deactivated successfully."));
 
         userRepository.findByUserId(targetUser.getUserId()).orElseThrow();
+    }
+
+    @Test
+    void updateProfileAllowsPrivateAccountWithLongOAuthImageUrl() throws Exception {
+        String email = unique("oauth") + "@example.com";
+        String username = unique("oauth");
+        User user = new User();
+        user.setEmail(email);
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode("unused-password"));
+        user.setFullName("OAuth User");
+        user.setBio("");
+        user.setProfilePicUrl(null);
+        user.setBannerUrl(null);
+        user.setPrivateAccount(false);
+        user.setRole(Role.USER);
+        user.setProvider(AuthProvider.GOOGLE);
+        user.setActive(true);
+        user.setEmailVerified(true);
+        user.setPendingEmail(null);
+        user = userRepository.save(user);
+
+        String accessToken = jwtTokenService.generateAccessToken(user).token();
+        String longProfilePicUrl = "https://lh3.googleusercontent.com/a/"
+                + "A".repeat(720)
+                + "=s256-c";
+
+        mockMvc.perform(put("/api/v1/auth/profile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .content("""
+                                {
+                                  "username": "%s",
+                                  "email": "%s",
+                                  "fullName": "OAuth User",
+                                  "bio": "",
+                                  "profilePicUrl": "%s",
+                                  "bannerUrl": "",
+                                  "privateAccount": true
+                                }
+                                """.formatted(username, email, longProfilePicUrl)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.privateAccount").value(true))
+                .andExpect(jsonPath("$.profilePicUrl").value(longProfilePicUrl));
     }
 
     private String registerAndVerify(String username, String email) throws Exception {
