@@ -61,11 +61,13 @@ springdoc:
 
 app:
   services:
+    auth-base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:8081}
     follow-base-url: ${FOLLOW_SERVICE_BASE_URL:http://localhost:8085}
     search-base-url: ${SEARCH_SERVICE_BASE_URL:http://localhost:8088}
   events:
     exchange: ${APP_EVENTS_EXCHANGE:connectsphere.events}
     search-routing-key: ${APP_SEARCH_ROUTING_KEY:search.post.index}
+    notification-routing-key: ${APP_NOTIFICATION_ROUTING_KEY:notification.social}
 
 logging:
   level:

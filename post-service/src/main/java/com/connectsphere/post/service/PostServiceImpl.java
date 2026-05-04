@@ -8,15 +8,21 @@ import com.connectsphere.post.entity.PostType;
 import com.connectsphere.post.entity.PostVisibility;
 import com.connectsphere.post.exception.BadRequestException;
 import com.connectsphere.post.exception.NotFoundException;
+import com.connectsphere.post.messaging.NotificationEventPublisher;
 import com.connectsphere.post.messaging.SearchIndexEvent;
 import com.connectsphere.post.messaging.SearchIndexEventPublisher;
+import com.connectsphere.post.messaging.SocialNotificationEvent;
 import com.connectsphere.post.repository.PostRepository;
 import java.util.HashMap;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,22 +34,30 @@ import org.springframework.web.client.RestClient;
 @Transactional
 public class PostServiceImpl implements PostService {
 
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w{3,50})");
+
     private final PostRepository postRepository;
     private final RestClient restClient;
+    private final String authServiceBaseUrl;
     private final String followServiceBaseUrl;
     private final SearchIndexEventPublisher searchIndexEventPublisher;
+    private final NotificationEventPublisher notificationEventPublisher;
     private final CacheManager cacheManager;
 
     public PostServiceImpl(
             PostRepository postRepository,
+            @org.springframework.beans.factory.annotation.Value("${app.services.auth-base-url:http://localhost:8081}") String authServiceBaseUrl,
             @org.springframework.beans.factory.annotation.Value("${app.services.follow-base-url:http://localhost:8085}") String followServiceBaseUrl,
             SearchIndexEventPublisher searchIndexEventPublisher,
+            NotificationEventPublisher notificationEventPublisher,
             CacheManager cacheManager
     ) {
         this.postRepository = postRepository;
         this.restClient = RestClient.builder().build();
+        this.authServiceBaseUrl = authServiceBaseUrl;
         this.followServiceBaseUrl = followServiceBaseUrl;
         this.searchIndexEventPublisher = searchIndexEventPublisher;
+        this.notificationEventPublisher = notificationEventPublisher;
         this.cacheManager = cacheManager;
     }
 
@@ -60,6 +74,7 @@ public class PostServiceImpl implements PostService {
 
         Post savedPost = postRepository.save(post);
         publishSearchIndex(savedPost, "UPSERT");
+        publishMentionNotifications(savedPost);
         clearPostCaches();
         return PostResponse.from(savedPost);
     }
@@ -242,6 +257,62 @@ public class PostServiceImpl implements PostService {
             searchIndexEventPublisher.publish(new SearchIndexEvent(post.getPostId(), normalizeContent(post.getContent()), operation));
         } catch (RuntimeException ignored) {
             // Search indexing is important for discovery, but posting itself should still succeed if the broker is temporarily unavailable.
+        }
+    }
+
+    private void publishMentionNotifications(Post post) {
+        for (String username : extractMentionUsernames(post.getContent())) {
+            String recipientId = resolveUserIdByUsername(username);
+            if (recipientId == null || recipientId.equalsIgnoreCase(post.getAuthorId())) {
+                continue;
+            }
+            try {
+                notificationEventPublisher.publish(new SocialNotificationEvent(
+                        recipientId,
+                        post.getAuthorId(),
+                        "MENTION",
+                        "mentioned you in a post",
+                        post.getPostId(),
+                        "POST",
+                        "/post/" + post.getPostId()
+                ));
+            } catch (RuntimeException ignored) {
+                // Mention notifications are best-effort and should not block post creation.
+            }
+        }
+    }
+
+    private Set<String> extractMentionUsernames(String content) {
+        Set<String> usernames = new LinkedHashSet<>();
+        if (content == null || content.isBlank()) {
+            return usernames;
+        }
+        Matcher matcher = MENTION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            usernames.add(matcher.group(1));
+        }
+        return usernames;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String resolveUserIdByUsername(String username) {
+        try {
+            List<Map<String, Object>> users = restClient.get()
+                    .uri(authServiceBaseUrl + "/api/v1/auth/search?query={query}", username)
+                    .retrieve()
+                    .body(List.class);
+            if (users == null) {
+                return null;
+            }
+            return users.stream()
+                    .filter(user -> username.equalsIgnoreCase(String.valueOf(user.get("username"))))
+                    .map(user -> user.get("userId"))
+                    .filter(value -> value != null)
+                    .map(String::valueOf)
+                    .findFirst()
+                    .orElse(null);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 

@@ -9,9 +9,13 @@ import com.connectsphere.comment.messaging.NotificationEventPublisher;
 import com.connectsphere.comment.messaging.SocialNotificationEvent;
 import com.connectsphere.comment.exception.NotFoundException;
 import com.connectsphere.comment.repository.CommentRepository;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,18 +25,23 @@ import org.springframework.web.client.RestClient;
 @Transactional
 public class CommentServiceImpl implements CommentService {
 
+    private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w{3,50})");
+
     private final CommentRepository commentRepository;
     private final RestClient restClient;
+    private final String authServiceBaseUrl;
     private final String postServiceBaseUrl;
     private final NotificationEventPublisher notificationEventPublisher;
 
     public CommentServiceImpl(
             CommentRepository commentRepository,
+            @Value("${app.services.auth-base-url:http://localhost:8081}") String authServiceBaseUrl,
             @Value("${app.services.post-base-url:http://localhost:8082}") String postServiceBaseUrl,
             NotificationEventPublisher notificationEventPublisher
     ) {
         this.commentRepository = commentRepository;
         this.restClient = RestClient.builder().build();
+        this.authServiceBaseUrl = authServiceBaseUrl;
         this.postServiceBaseUrl = postServiceBaseUrl;
         this.notificationEventPublisher = notificationEventPublisher;
     }
@@ -60,6 +69,7 @@ public class CommentServiceImpl implements CommentService {
 
         tryIncrementPostComments(saved.getPostId());
         tryCreateNotifications(saved, parent);
+        tryCreateMentionNotifications(saved);
 
         return CommentResponse.from(saved);
     }
@@ -179,6 +189,62 @@ public class CommentServiceImpl implements CommentService {
             }
         } catch (RuntimeException ignored) {
             // Notification delivery is best-effort.
+        }
+    }
+
+    private void tryCreateMentionNotifications(Comment saved) {
+        for (String username : extractMentionUsernames(saved.getContent())) {
+            String recipientId = resolveUserIdByUsername(username);
+            if (recipientId == null || recipientId.equalsIgnoreCase(saved.getAuthorId())) {
+                continue;
+            }
+            try {
+                notificationEventPublisher.publish(new SocialNotificationEvent(
+                        recipientId,
+                        saved.getAuthorId(),
+                        "MENTION",
+                        "mentioned you in a comment",
+                        saved.getCommentId(),
+                        "COMMENT",
+                        "/post/" + saved.getPostId() + "?comment=" + saved.getCommentId()
+                ));
+            } catch (RuntimeException ignored) {
+                // Mention notification delivery is best-effort.
+            }
+        }
+    }
+
+    private Set<String> extractMentionUsernames(String content) {
+        Set<String> usernames = new LinkedHashSet<>();
+        if (content == null || content.isBlank()) {
+            return usernames;
+        }
+        Matcher matcher = MENTION_PATTERN.matcher(content);
+        while (matcher.find()) {
+            usernames.add(matcher.group(1));
+        }
+        return usernames;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String resolveUserIdByUsername(String username) {
+        try {
+            List<Map<String, Object>> users = restClient.get()
+                    .uri(authServiceBaseUrl + "/api/v1/auth/search?query={query}", username)
+                    .retrieve()
+                    .body(List.class);
+            if (users == null) {
+                return null;
+            }
+            return users.stream()
+                    .filter(user -> username.equalsIgnoreCase(String.valueOf(user.get("username"))))
+                    .map(user -> user.get("userId"))
+                    .filter(value -> value != null)
+                    .map(String::valueOf)
+                    .findFirst()
+                    .orElse(null);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 

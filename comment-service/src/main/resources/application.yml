@@ -53,6 +53,7 @@ eureka:
 
 app:
   services:
+    auth-base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:8081}
     post-base-url: ${POST_SERVICE_BASE_URL:http://localhost:8082}
   events:
     exchange: ${APP_EVENTS_EXCHANGE:connectsphere.events}

@@ -138,6 +138,7 @@ services:
       REDIS_HEALTH_ENABLED: ${REDIS_HEALTH_ENABLED:-true}
       SPRING_CACHE_TYPE: redis
       POST_CACHE_TTL: ${POST_CACHE_TTL:-PT5M}
+      AUTH_SERVICE_BASE_URL: http://auth-service:8081
       FOLLOW_SERVICE_BASE_URL: http://follow-service:8085
       SEARCH_SERVICE_BASE_URL: http://search-service:8088
       RABBITMQ_HOST: rabbitmq
@@ -164,6 +165,7 @@ services:
       MYSQL_USERNAME: root
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
       EUREKA_SERVER_URL: http://service-registry:8761/eureka
+      AUTH_SERVICE_BASE_URL: http://auth-service:8081
       POST_SERVICE_BASE_URL: http://post-service:8082
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
