@@ -26,7 +26,7 @@ import org.springframework.web.client.RestClient;
 @Transactional
 public class SearchServiceImpl implements SearchService {
 
-    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#([A-Za-z0-9_]{1,50})");
+    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#(\\w{1,50})");
 
     private final HashtagRepository hashtagRepository;
     private final PostHashtagRepository postHashtagRepository;

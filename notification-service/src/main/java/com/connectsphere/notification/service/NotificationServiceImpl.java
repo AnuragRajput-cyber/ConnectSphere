@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class NotificationServiceImpl implements NotificationService {
 
+    private static final String FEED_PATH = "/feed";
+    private static final String NOTIFICATIONS_PATH = "/notifications";
+
     private final NotificationRepository notificationRepository;
     private final CacheManager cacheManager;
 
@@ -130,15 +133,15 @@ public class NotificationServiceImpl implements NotificationService {
         String targetType = blankToNull(request.targetType());
         String targetId = blankToNull(request.targetId());
         if (targetType == null) {
-            return "/notifications";
+            return NOTIFICATIONS_PATH;
         }
 
         return switch (targetType.toUpperCase(Locale.ROOT)) {
-            case "POST" -> targetId == null ? "/feed" : "/post/" + targetId;
-            case "USER" -> targetId == null ? "/feed" : "/profile/" + targetId;
-            case "STORY" -> targetId == null ? "/feed" : "/feed?story=" + targetId;
-            case "SYSTEM" -> "/notifications";
-            default -> "/notifications";
+            case "POST" -> targetId == null ? FEED_PATH : "/post/" + targetId;
+            case "USER" -> targetId == null ? FEED_PATH : "/profile/" + targetId;
+            case "STORY" -> targetId == null ? FEED_PATH : FEED_PATH + "?story=" + targetId;
+            case "SYSTEM" -> NOTIFICATIONS_PATH;
+            default -> NOTIFICATIONS_PATH;
         };
     }
 

@@ -21,6 +21,8 @@ import org.springframework.web.client.RestClient;
 @Transactional
 public class LikeServiceImpl implements LikeService {
 
+    private static final String AUTHOR_ID_FIELD = "authorId";
+
     private final LikeRepository likeRepository;
     private final RestClient restClient;
     private final String postServiceBaseUrl;
@@ -184,9 +186,9 @@ public class LikeServiceImpl implements LikeService {
 
     private String resolveRecipient(Like like) {
         return switch (like.getTargetType()) {
-            case POST -> fetchField(postServiceBaseUrl + "/api/v1/posts/" + like.getTargetId(), "authorId");
-            case COMMENT -> fetchField(commentServiceBaseUrl + "/api/v1/comments/" + like.getTargetId(), "authorId");
-            case STORY -> fetchField(mediaServiceBaseUrl + "/api/v1/stories/" + like.getTargetId(), "authorId");
+            case POST -> fetchField(postServiceBaseUrl + "/api/v1/posts/" + like.getTargetId(), AUTHOR_ID_FIELD);
+            case COMMENT -> fetchField(commentServiceBaseUrl + "/api/v1/comments/" + like.getTargetId(), AUTHOR_ID_FIELD);
+            case STORY -> fetchField(mediaServiceBaseUrl + "/api/v1/stories/" + like.getTargetId(), AUTHOR_ID_FIELD);
         };
     }
 

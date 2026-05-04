@@ -40,6 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthServiceImpl implements AuthService {
 
+    private static final String USER_NOT_FOUND = "User not found.";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -281,7 +283,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userRepository.findByEmail(jwtTokenService.extractEmail(request.token()))
-                .orElseThrow(() -> new NotFoundException("User not found."));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
         if (!user.isActive() || !user.isEmailVerified()) {
             return new TokenValidationResponse(false, null, null, null, null);
         }
@@ -319,14 +321,14 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public User getUserById(String userId) {
         return userRepository.findByUserId(userId.trim())
-                .orElseThrow(() -> new NotFoundException("User not found."));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
     }
 
     @Override
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email.trim().toLowerCase())
-                .orElseThrow(() -> new NotFoundException("User not found."));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
     }
 
     @Override
@@ -334,7 +336,7 @@ public class AuthServiceImpl implements AuthService {
     public PublicUserProfileResponse getPublicUserProfile(String userId) {
         User user = getUserById(userId);
         if (!user.isActive()) {
-            throw new NotFoundException("User not found.");
+            throw new NotFoundException(USER_NOT_FOUND);
         }
         return PublicUserProfileResponse.from(user);
     }

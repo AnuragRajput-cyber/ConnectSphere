@@ -24,6 +24,8 @@ import org.springframework.web.client.RestClient;
 @Transactional
 public class ReportModerationService {
 
+    private static final String REPORTED_USER_NOT_FOUND = "Reported user not found.";
+
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final RestClient restClient;
@@ -116,7 +118,7 @@ public class ReportModerationService {
     private void applyResolution(Report report, ReportResolutionAction action, User admin) {
         switch (action) {
             case DISMISS -> {
-                return;
+                // Dismissal only changes the report state; there is no downstream target mutation.
             }
             case REMOVE_POST -> {
                 requireTargetType(report, ReportTargetType.POST);
@@ -139,14 +141,14 @@ public class ReportModerationService {
             case SUSPEND_USER -> {
                 requireTargetType(report, ReportTargetType.USER);
                 User user = userRepository.findByUserId(report.getTargetId())
-                        .orElseThrow(() -> new NotFoundException("Reported user not found."));
+                        .orElseThrow(() -> new NotFoundException(REPORTED_USER_NOT_FOUND));
                 user.setActive(false);
                 userRepository.save(user);
             }
             case DELETE_USER -> {
                 requireTargetType(report, ReportTargetType.USER);
                 User user = userRepository.findByUserId(report.getTargetId())
-                        .orElseThrow(() -> new NotFoundException("Reported user not found."));
+                        .orElseThrow(() -> new NotFoundException(REPORTED_USER_NOT_FOUND));
                 if (user.getUserId().equals(admin.getUserId())) {
                     throw new BadRequestException("Admins cannot delete themselves through moderation.");
                 }
@@ -192,7 +194,7 @@ public class ReportModerationService {
                     .retrieve()
                     .toBodilessEntity();
             case USER -> userRepository.findByUserId(normalizedTargetId)
-                    .orElseThrow(() -> new NotFoundException("Reported user not found."));
+                    .orElseThrow(() -> new NotFoundException(REPORTED_USER_NOT_FOUND));
         }
     }
 

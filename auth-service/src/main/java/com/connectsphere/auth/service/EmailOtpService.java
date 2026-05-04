@@ -39,11 +39,11 @@ public class EmailOtpService {
 
         EmailOtp recent = emailOtpRepository.findFirstByEmailAndPurposeAndUsedFalseOrderByCreatedAtDesc(normalizedEmail, purpose)
                 .orElse(null);
-        if (recent != null && recent.getExpiresAt().isAfter(Instant.now())) {
-            // Basic anti-spam: force a short wait window between issues per email+purpose.
-            if (recent.getCreatedAt().isAfter(Instant.now().minusSeconds(45))) {
-                throw new BadRequestException("Please wait a moment before requesting another verification code.");
-            }
+        // Basic anti-spam: force a short wait window between issues per email+purpose.
+        if (recent != null
+                && recent.getExpiresAt().isAfter(Instant.now())
+                && recent.getCreatedAt().isAfter(Instant.now().minusSeconds(45))) {
+            throw new BadRequestException("Please wait a moment before requesting another verification code.");
         }
 
         String code = generateSixDigitCode();

@@ -50,7 +50,6 @@ public class EmailOtp {
         }
         createdAt = Instant.now();
         attempts = Math.max(0, attempts);
-        used = used || false;
     }
 
     public String getOtpId() {
@@ -117,4 +116,3 @@ public class EmailOtp {
         return createdAt;
     }
 }
-

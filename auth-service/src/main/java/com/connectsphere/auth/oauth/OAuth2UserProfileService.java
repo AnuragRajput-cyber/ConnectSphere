@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClient;
 @Service
 public class OAuth2UserProfileService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
+    private static final String EMAIL_ATTRIBUTE = "email";
     private static final ParameterizedTypeReference<List<Map<String, Object>>> EMAIL_LIST_TYPE =
             new ParameterizedTypeReference<>() {
             };
@@ -32,8 +33,8 @@ public class OAuth2UserProfileService implements OAuth2UserService<OAuth2UserReq
         Map<String, Object> attributes = new LinkedHashMap<>(oauthUser.getAttributes());
         String registrationId = userRequest.getClientRegistration().getRegistrationId().toLowerCase();
 
-        if ("github".equals(registrationId) && isBlank(stringValue(attributes.get("email")))) {
-            attributes.put("email", fetchGithubEmail(userRequest.getAccessToken().getTokenValue()));
+        if ("github".equals(registrationId) && isBlank(stringValue(attributes.get(EMAIL_ATTRIBUTE)))) {
+            attributes.put(EMAIL_ATTRIBUTE, fetchGithubEmail(userRequest.getAccessToken().getTokenValue()));
         }
 
         return new DefaultOAuth2User(
@@ -62,12 +63,12 @@ public class OAuth2UserProfileService implements OAuth2UserService<OAuth2UserReq
         return emails.stream()
                 .filter(emailEntry -> Boolean.TRUE.equals(emailEntry.get("verified")))
                 .filter(emailEntry -> Boolean.TRUE.equals(emailEntry.get("primary")))
-                .map(emailEntry -> stringValue(emailEntry.get("email")))
+                .map(emailEntry -> stringValue(emailEntry.get(EMAIL_ATTRIBUTE)))
                 .filter(email -> !isBlank(email))
                 .findFirst()
                 .or(() -> emails.stream()
                         .filter(emailEntry -> Boolean.TRUE.equals(emailEntry.get("verified")))
-                        .map(emailEntry -> stringValue(emailEntry.get("email")))
+                        .map(emailEntry -> stringValue(emailEntry.get(EMAIL_ATTRIBUTE)))
                         .filter(email -> !isBlank(email))
                         .findFirst())
                 .orElseThrow(() -> new OAuth2AuthenticationException(

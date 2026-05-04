@@ -67,6 +67,7 @@ public class User {
     private Instant updatedAt;
 
     public User() {
+        // Required by JPA for entity materialization.
     }
 
     // Entity timestamps and IDs are assigned here so service methods can stay focused on business rules.

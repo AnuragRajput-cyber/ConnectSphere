@@ -65,6 +65,7 @@ public class Post {
     private boolean deleted;
 
     public Post() {
+        // Required by JPA for entity materialization.
     }
 
     @PrePersist

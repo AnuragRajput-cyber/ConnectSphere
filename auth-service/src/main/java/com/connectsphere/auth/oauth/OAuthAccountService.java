@@ -65,7 +65,7 @@ public class OAuthAccountService {
     private User createOAuthUser(OAuthUserProfile profile) {
         User user = new User();
         user.setEmail(profile.email().trim().toLowerCase(Locale.ROOT));
-        user.setUsername(createUniqueUsername(profile.username(), profile.fullName(), profile.providerUserId()));
+        user.setUsername(createUniqueUsername(profile.username(), profile.fullName()));
         user.setFullName(resolveFullName(profile));
         // OAuth users do not authenticate with a local password, so we store a random placeholder hash.
         user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
@@ -77,7 +77,7 @@ public class OAuthAccountService {
         return userRepository.save(user);
     }
 
-    private String createUniqueUsername(String preferredUsername, String fullName, String providerUserId) {
+    private String createUniqueUsername(String preferredUsername, String fullName) {
         String baseUsername = sanitizeUsername(firstNonBlank(preferredUsername, fullName, "user"));
         String candidate = baseUsername;
         int suffix = 1;
