@@ -59,10 +59,10 @@
   --shadow-lg: 0 24px 80px rgba(15, 23, 42, 0.14);
 
   // LAYOUT
-  --max-shell: 1400px;
+  --max-shell: 1408px;
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 88px;
-  --feed-width: 680px;
+  --feed-width: clamp(640px, calc(100vw - var(--sidebar-width) - var(--right-sidebar-width) - 72px), 740px);
   --right-sidebar-width: 340px;
 
   // TYPOGRAPHY
@@ -413,31 +413,16 @@ video {
 
 // ==================== LAYOUT ====================
 
-.shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  gap: var(--space-6);
-  max-width: var(--max-shell);
-  margin: 0 auto;
-  min-height: 100vh;
-}
-
-.shell.auth-shell {
-  grid-template-columns: 1fr;
-}
-
-.content-shell {
-  min-width: 0;
-}
-
 // ==================== PAGE STRUCTURE ====================
 
 .twitter-page {
   display: grid;
   grid-template-columns: minmax(0, var(--feed-width)) var(--right-sidebar-width);
-  gap: var(--space-6);
-  max-width: 1044px;
+  gap: 24px;
+  width: min(100%, calc(var(--feed-width) + var(--right-sidebar-width) + 24px));
+  max-width: none;
   margin: 0;
+  align-items: start;
 }
 
 .twitter-main {
@@ -589,14 +574,28 @@ video {
 // ==================== RESPONSIVE DESIGN ====================
 
 // Tablet (1200px and below)
-@media (max-width: 1200px) {
+@media (min-width: 1280px) and (max-width: 1439px) {
   :root {
-    --sidebar-width: var(--sidebar-width-collapsed);
+    --right-sidebar-width: 320px;
+    --feed-width: clamp(640px, calc(100vw - var(--sidebar-width) - var(--right-sidebar-width) - 48px), 700px);
+  }
+
+  .twitter-page {
+    gap: 16px;
+    width: min(100%, calc(var(--feed-width) + var(--right-sidebar-width) + 16px));
+  }
+}
+
+@media (max-width: 1279px) {
+  :root {
+    --feed-width: 100%;
   }
 
   .twitter-page {
     grid-template-columns: 1fr;
-    gap: var(--space-4);
+    width: 100%;
+    max-width: none;
+    gap: 0;
   }
 }
 
@@ -650,13 +649,6 @@ video {
   padding: 2.5rem 1.5rem;
   text-align: center;
   color: var(--muted);
-}
-
-@media (max-width: 1200px) {
-  .twitter-page {
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 680px;
-  }
 }
 
 @media (max-width: 768px) {

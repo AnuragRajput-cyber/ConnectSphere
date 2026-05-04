@@ -21,7 +21,7 @@
 
 .profile-banner {
   position: relative;
-  height: 190px;
+  height: 220px;
   overflow: hidden;
   background: var(--brand-gradient);
   z-index: 1;
@@ -420,7 +420,7 @@
 
 @media (max-width: 768px) {
   .profile-banner {
-    height: 140px;
+    height: 150px;
   }
 
   .about-summary,
