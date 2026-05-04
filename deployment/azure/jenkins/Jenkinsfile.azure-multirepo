@@ -16,6 +16,8 @@ pipeline {
     CI_NETWORK = 'connectsphere-ci'
     CI_MYSQL_CONTAINER = 'connectsphere-ci-mysql'
     CI_MYSQL_PASSWORD = 'root123'
+    SONARQUBE_SERVER = 'ConnectSphere SonarQube'
+    SONAR_SCANNER_JAVA_OPTS = '-Xmx512m'
   }
 
   stages {
@@ -90,6 +92,22 @@ pipeline {
           sh 'npm ci --prefer-offline'
           sh 'npm test -- --watch=false'
           sh 'npm run build'
+        }
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv("${SONARQUBE_SERVER}") {
+          sh 'sonar-scanner'
+        }
+      }
+    }
+
+    stage('SonarQube Quality Gate') {
+      steps {
+        timeout(time: 10, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
         }
       }
     }

@@ -3,7 +3,7 @@ FROM jenkins/jenkins:lts-jdk17
 USER root
 
 RUN apt-get update \
-    && apt-get install -y ca-certificates curl git gnupg lsb-release maven xz-utils \
+    && apt-get install -y ca-certificates curl git gnupg lsb-release maven unzip xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 ARG NODE_VERSION=22.12.0
@@ -31,6 +31,21 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && apt-get update \
     && apt-get install -y docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
+
+ARG SONAR_SCANNER_VERSION=7.3.0.5189
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+      amd64) scanner_arch="linux-x64" ;; \
+      arm64) scanner_arch="linux-aarch64" ;; \
+      *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-${scanner_arch}.zip" -o /tmp/sonar-scanner.zip; \
+    unzip -q /tmp/sonar-scanner.zip -d /opt; \
+    mv "/opt/sonar-scanner-${SONAR_SCANNER_VERSION}-${scanner_arch}" /opt/sonar-scanner; \
+    ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner; \
+    rm /tmp/sonar-scanner.zip; \
+    sonar-scanner --version
 
 USER jenkins
 
