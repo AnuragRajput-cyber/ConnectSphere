@@ -16,8 +16,16 @@ services:
       - ../../.env.production:/run/secrets/connectsphere.env:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - sonarqube
     environment:
       JAVA_OPTS: "-Djenkins.install.runSetupWizard=true"
+
+networks:
+  sonarqube:
+    external: true
+    name: sonarqube_sonarqube
 
 volumes:
   jenkins_home:

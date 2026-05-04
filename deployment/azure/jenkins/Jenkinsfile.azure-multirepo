@@ -16,7 +16,7 @@ pipeline {
     CI_NETWORK = 'connectsphere-ci'
     CI_MYSQL_CONTAINER = 'connectsphere-ci-mysql'
     CI_MYSQL_PASSWORD = 'root123'
-    SONAR_HOST_URL = 'http://host.docker.internal:9000'
+    SONAR_HOST_URL = 'http://connectsphere-sonarqube:9000'
     SONAR_TOKEN_CREDENTIAL_ID = 'sonarqube-token'
     SONAR_SCANNER_JAVA_OPTS = '-Xmx512m'
   }

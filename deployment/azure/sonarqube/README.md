@@ -108,11 +108,11 @@ In Jenkins:
 Verify Jenkins can reach SonarQube:
 
 ```bash
-docker exec connectsphere-jenkins curl -I http://host.docker.internal:9000
+docker exec connectsphere-jenkins curl -I http://connectsphere-sonarqube:9000
 docker exec connectsphere-jenkins sonar-scanner --version
 ```
 
-The `host.docker.internal` name is provided by `docker-compose.jenkins.yml` through `extra_hosts`.
+The Jenkins container is attached to the SonarQube Docker network by `docker-compose.jenkins.yml`, so it can reach SonarQube through the container name `connectsphere-sonarqube`.
 
 ## Pipeline Behavior
 
