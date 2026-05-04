@@ -9,4 +9,3 @@ matrix-auth
 blueocean
 docker-workflow
 configuration-as-code
-sonar

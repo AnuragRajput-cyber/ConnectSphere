@@ -86,17 +86,11 @@ In SonarQube:
 
 1. Create project key: `connectsphere`.
 2. Create a user token for Jenkins.
-3. Add webhook:
-
-```text
-https://jenkins.anuragbuilds.dev/sonarqube-webhook/
-```
-
-The trailing slash matters.
+You do not need to configure the Jenkins SonarQube plugin for this pipeline. The Jenkinsfile calls `sonar-scanner` directly and polls the SonarQube REST API for the quality gate result.
 
 ## Jenkins Configuration
 
-Install/rebuild Jenkins with the updated image. The updated `plugins.txt` includes the SonarQube Jenkins plugin, and the updated Dockerfile installs `sonar-scanner`.
+Install/rebuild Jenkins with the updated image. The updated Dockerfile installs `sonar-scanner`, which the Jenkinsfile uses directly.
 
 ```bash
 cd /opt/ConnectSphere/deployment/azure/jenkins
@@ -110,13 +104,15 @@ In Jenkins:
    - Kind: Secret text
    - Secret: SonarQube token
    - ID: `sonarqube-token`
-3. Go to `Manage Jenkins` -> `System` -> `SonarQube servers`.
-4. Add:
-   - Name: `ConnectSphere SonarQube`
-   - Server URL: `http://host.docker.internal:9000`
-   - Server authentication token: `sonarqube-token`
 
-The Jenkinsfile uses the exact server name `ConnectSphere SonarQube`.
+Verify Jenkins can reach SonarQube:
+
+```bash
+docker exec connectsphere-jenkins curl -I http://host.docker.internal:9000
+docker exec connectsphere-jenkins sonar-scanner --version
+```
+
+The `host.docker.internal` name is provided by `docker-compose.jenkins.yml` through `extra_hosts`.
 
 ## Pipeline Behavior
 
