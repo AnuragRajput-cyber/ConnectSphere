@@ -11,6 +11,7 @@ import com.connectsphere.auth.entity.AuthProvider;
 import com.connectsphere.auth.entity.Role;
 import com.connectsphere.auth.entity.User;
 import com.connectsphere.auth.repository.EmailOtpRepository;
+import com.connectsphere.auth.repository.PendingRegistrationRepository;
 import com.connectsphere.auth.repository.ReportRepository;
 import com.connectsphere.auth.repository.RevokedTokenRepository;
 import com.connectsphere.auth.repository.UserRepository;
@@ -38,6 +39,9 @@ class AuthResourceIntegrationTest {
     private EmailOtpRepository emailOtpRepository;
 
     @Autowired
+    private PendingRegistrationRepository pendingRegistrationRepository;
+
+    @Autowired
     private ReportRepository reportRepository;
 
     @Autowired
@@ -54,6 +58,7 @@ class AuthResourceIntegrationTest {
         reportRepository.deleteAll();
         revokedTokenRepository.deleteAll();
         emailOtpRepository.deleteAll();
+        pendingRegistrationRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -93,6 +98,9 @@ class AuthResourceIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
+        org.assertj.core.api.Assertions.assertThat(userRepository.findByEmail(email)).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(pendingRegistrationRepository.findByEmail(email)).isPresent();
+
         String otp = JsonTestHelper.readField(registerResponse, "debugOtpCode");
 
         mockMvc.perform(post("/api/v1/auth/verify-email")
@@ -104,6 +112,9 @@ class AuthResourceIntegrationTest {
                                 }
                                 """.formatted(email, otp)))
                 .andExpect(status().isOk());
+
+        org.assertj.core.api.Assertions.assertThat(userRepository.findByEmail(email)).isPresent();
+        org.assertj.core.api.Assertions.assertThat(pendingRegistrationRepository.findByEmail(email)).isEmpty();
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

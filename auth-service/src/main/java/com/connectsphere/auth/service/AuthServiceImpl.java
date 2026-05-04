@@ -19,12 +19,15 @@ import com.connectsphere.auth.dto.UserSummaryResponse;
 import com.connectsphere.auth.dto.VerifyEmailRequest;
 import com.connectsphere.auth.entity.AuthProvider;
 import com.connectsphere.auth.entity.OtpPurpose;
+import com.connectsphere.auth.entity.PendingRegistration;
 import com.connectsphere.auth.entity.Role;
 import com.connectsphere.auth.entity.User;
 import com.connectsphere.auth.exception.BadRequestException;
 import com.connectsphere.auth.exception.NotFoundException;
+import com.connectsphere.auth.repository.PendingRegistrationRepository;
 import com.connectsphere.auth.repository.UserRepository;
 import com.connectsphere.auth.security.JwtTokenService;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -42,24 +45,29 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenService jwtTokenService;
     private final EmailOtpService emailOtpService;
+    private final PendingRegistrationRepository pendingRegistrationRepository;
 
     public AuthServiceImpl(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager,
             JwtTokenService jwtTokenService,
-            EmailOtpService emailOtpService
+            EmailOtpService emailOtpService,
+            PendingRegistrationRepository pendingRegistrationRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtTokenService = jwtTokenService;
         this.emailOtpService = emailOtpService;
+        this.pendingRegistrationRepository = pendingRegistrationRepository;
     }
 
     @Override
     public RegisterPendingResponse register(RegisterRequest request) {
+        purgeExpiredPendingRegistrations();
         ensureUniqueUser(request.email(), request.username(), null);
+        ensureUniquePendingRegistration(request.email(), request.username());
         // Public sign-up creates normal user accounts only; admin provisioning should stay an internal operation.
         if (request.role() != Role.USER) {
             throw new BadRequestException("Self-service registration is limited to USER accounts.");
@@ -70,31 +78,27 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
-        User user = new User();
-        user.setUsername(request.username().trim());
-        user.setEmail(request.email().trim().toLowerCase());
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setFullName(request.fullName().trim());
-        user.setBio(blankToNull(request.bio()));
-        user.setProfilePicUrl(blankToNull(request.profilePicUrl()));
-        user.setBannerUrl(null);
-        user.setRole(request.role());
-        user.setProvider(request.provider());
-        user.setActive(true);
-        user.setPrivateAccount(false);
-        user.setEmailVerified(false);
-        user.setPendingEmail(null);
+        PendingRegistration pending = new PendingRegistration();
+        pending.setUsername(request.username().trim());
+        pending.setEmail(request.email().trim().toLowerCase());
+        pending.setPasswordHash(passwordEncoder.encode(request.password()));
+        pending.setFullName(request.fullName().trim());
+        pending.setBio(blankToNull(request.bio()));
+        pending.setProfilePicUrl(blankToNull(request.profilePicUrl()));
+        pending.setRole(request.role());
+        pending.setProvider(request.provider());
+        pending.setExpiresAt(Instant.now().plusSeconds(15 * 60));
+        pending = pendingRegistrationRepository.save(pending);
 
-        userRepository.save(user);
         EmailOtpService.OtpIssueResult otpIssueResult = emailOtpService.issueOtp(
-                user.getUserId(),
-                user.getEmail(),
+                pending.getPendingId(),
+                pending.getEmail(),
                 OtpPurpose.REGISTER,
                 "ConnectSphere verification code"
         );
         return new RegisterPendingResponse(
-                user.getUserId(),
-                user.getEmail(),
+                pending.getPendingId(),
+                pending.getEmail(),
                 otpIssueResult.expiresAt(),
                 otpIssueResult.debugCode()
         );
@@ -102,6 +106,40 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void verifyEmail(VerifyEmailRequest request) {
+        PendingRegistration pending = pendingRegistrationRepository
+                .findByEmailIgnoreCase(request.email().trim().toLowerCase())
+                .orElse(null);
+        if (pending != null) {
+            if (pending.getExpiresAt().isBefore(Instant.now())) {
+                pendingRegistrationRepository.delete(pending);
+                throw new BadRequestException("Verification code is invalid or expired.");
+            }
+
+            emailOtpService.verifyOtpOrThrow(request.email(), OtpPurpose.REGISTER, request.code());
+            ensureUniqueUser(pending.getEmail(), pending.getUsername(), null);
+
+            User user = new User();
+            user.setUsername(pending.getUsername());
+            user.setEmail(pending.getEmail());
+            user.setPasswordHash(pending.getPasswordHash());
+            user.setFullName(pending.getFullName());
+            user.setBio(pending.getBio());
+            user.setProfilePicUrl(pending.getProfilePicUrl());
+            user.setBannerUrl(null);
+            user.setRole(pending.getRole());
+            user.setProvider(pending.getProvider());
+            user.setActive(true);
+            user.setPrivateAccount(false);
+            user.setEmailVerified(true);
+            user.setPendingEmail(null);
+            userRepository.save(user);
+            pendingRegistrationRepository.delete(pending);
+            emailOtpService.purgeExpired();
+            purgeExpiredPendingRegistrations();
+            return;
+        }
+
+        // Backward compatibility for older deployments that already inserted unverified users.
         User user = getUserByEmail(request.email());
         if (!user.isActive()) {
             throw new BadRequestException("Account is inactive.");
@@ -117,6 +155,25 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public RegisterPendingResponse resendRegisterOtp(ResendOtpRequest request) {
+        purgeExpiredPendingRegistrations();
+        PendingRegistration pending = pendingRegistrationRepository
+                .findByEmailIgnoreCase(request.email().trim().toLowerCase())
+                .orElse(null);
+        if (pending != null) {
+            EmailOtpService.OtpIssueResult otpIssueResult = emailOtpService.issueOtp(
+                    pending.getPendingId(),
+                    pending.getEmail(),
+                    OtpPurpose.REGISTER,
+                    "ConnectSphere verification code"
+            );
+            return new RegisterPendingResponse(
+                    pending.getPendingId(),
+                    pending.getEmail(),
+                    otpIssueResult.expiresAt(),
+                    otpIssueResult.debugCode()
+            );
+        }
+
         User user = getUserByEmail(request.email());
         if (!user.isActive()) {
             throw new BadRequestException("Account is inactive.");
@@ -352,11 +409,26 @@ public class AuthServiceImpl implements AuthService {
                 .ifPresent(user -> {
                     throw new BadRequestException("Email is already in use.");
                 });
-        userRepository.findByUsername(username.trim())
+        userRepository.findByUsernameIgnoreCase(username.trim())
                 .filter(user -> !user.getUserId().equals(currentUserId))
                 .ifPresent(user -> {
                     throw new BadRequestException("Username is already in use.");
                 });
+    }
+
+    private void ensureUniquePendingRegistration(String email, String username) {
+        pendingRegistrationRepository.findByEmailIgnoreCase(email.trim().toLowerCase())
+                .ifPresent(pending -> {
+                    throw new BadRequestException("Registration is waiting for email verification. Please enter the OTP or request a new code.");
+                });
+        pendingRegistrationRepository.findByUsernameIgnoreCase(username.trim())
+                .ifPresent(pending -> {
+                    throw new BadRequestException("Username is already reserved by a pending registration.");
+                });
+    }
+
+    private void purgeExpiredPendingRegistrations() {
+        pendingRegistrationRepository.deleteByExpiresAtBefore(Instant.now());
     }
 
     private String blankToNull(String value) {
