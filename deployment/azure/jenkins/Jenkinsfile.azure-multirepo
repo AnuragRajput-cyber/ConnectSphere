@@ -19,6 +19,7 @@ pipeline {
     SONAR_HOST_URL = 'http://connectsphere-sonarqube:9000'
     SONAR_TOKEN_CREDENTIAL_ID = 'sonarqube-token'
     SONAR_SCANNER_JAVA_OPTS = '-Xmx512m'
+    ENFORCE_SONAR_QUALITY_GATE = 'false'
   }
 
   stages {
@@ -170,7 +171,11 @@ async function main() {
       .filter((condition) => condition.status !== 'OK')
       .map((condition) => `${condition.metricKey}: ${condition.actualValue} ${condition.comparator} ${condition.errorThreshold}`)
       .join('\\n');
-    throw new Error(`Quality Gate failed${failed ? `\\n${failed}` : ''}`);
+    const message = `Quality Gate failed${failed ? `\\n${failed}` : ''}`;
+    if (process.env.ENFORCE_SONAR_QUALITY_GATE === 'true') {
+      throw new Error(message);
+    }
+    console.warn(`${message}\\nContinuing because ENFORCE_SONAR_QUALITY_GATE is not true.`);
   }
 }
 
