@@ -3,6 +3,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state';
+import { MentionTextComponent } from '../../components/mention-text/mention-text';
 import { ProfileHeaderComponent } from '../../components/profile-header/profile-header';
 import { RightSidebarComponent } from '../../components/right-sidebar/right-sidebar';
 import { UiIconComponent } from '../../components/ui-icon/ui-icon';
@@ -17,7 +18,7 @@ import { UserDirectoryService } from '../../core/user-directory.service';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ProfileHeaderComponent, RightSidebarComponent, EmptyStateComponent, UiIconComponent, UserCardComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ProfileHeaderComponent, RightSidebarComponent, EmptyStateComponent, UiIconComponent, UserCardComponent, MentionTextComponent],
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
 })
@@ -437,6 +438,12 @@ export class Profile {
     }
   }
 
+  async logout(): Promise<void> {
+    await this.session.logout();
+    this.toast.show('Signed out', 'Your session has been cleared.', 'neutral');
+    await this.router.navigateByUrl('/feed');
+  }
+
   private async load(): Promise<void> {
     const currentUser = this.currentUser();
     const routeUserId = this.viewedUserId();
@@ -496,16 +503,18 @@ export class Profile {
       }
 
       const postsRequest = this.api.getPostsByUser(targetUserId);
-      const [posts, postCount, followers, following, trending, discoverUsers, currentFollowing, outgoingPending] = await Promise.all([
+      const [posts, postCount, followers, following, trending, currentFollowing, outgoingPending] = await Promise.all([
         postsRequest,
         this.api.getPostCount(targetUserId).catch(() => ({ authorId: targetUserId, count: 0 })),
         this.api.getFollowerCount(targetUserId).catch(() => ({ count: 0 })),
         this.api.getFollowingCount(targetUserId).catch(() => ({ count: 0 })),
         this.api.getTrendingHashtags().catch(() => []),
-        this.loadDiscoverUsers(),
         currentUser ? this.api.getFollowing(currentUser.userId).catch(() => []) : Promise.resolve([]),
         currentUser ? this.api.getOutgoingPendingRequests(currentUser.userId).catch(() => []) : Promise.resolve([]),
       ]);
+      const discoverUsers = currentUser
+        ? await this.loadDiscoverUsers(currentFollowing)
+        : [];
 
       this.posts.set(posts);
       this.trending.set(trending.slice(0, 5));
@@ -539,24 +548,10 @@ export class Profile {
     }
   }
 
-  private async loadDiscoverUsers(): Promise<UserSummary[]> {
+  private async loadDiscoverUsers(following: FollowResponse[] = []): Promise<UserSummary[]> {
     const currentUser = this.currentUser();
     if (currentUser) {
-      const suggestedIds = await this.api.getSuggestedUsers(currentUser.userId).catch(() => []);
-      if (suggestedIds.length) {
-        const profiles = await Promise.all(
-          suggestedIds.slice(0, 5).map((userId) => this.api.getPublicUserProfile(userId).catch(() => null)),
-        );
-        return profiles
-          .filter((profile): profile is NonNullable<typeof profile> => !!profile)
-          .map((profile) => ({
-            userId: profile.userId,
-            username: profile.username,
-            fullName: profile.fullName,
-            profilePicUrl: profile.profilePicUrl,
-            role: profile.role,
-          }));
-      }
+      return this.api.getFriendOfFriendSuggestions(currentUser.userId, following);
     }
 
     return [];

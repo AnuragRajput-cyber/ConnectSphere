@@ -65,6 +65,92 @@ spring:
           uri: http://localhost:4200
           predicates:
             - Path=/,/feed/**,/profile/**,/explore/**,/notifications/**,/stories/**,/chat/**,/assets/**,/media/**,/favicon.ico
+                - id: auth-service-docs
+          uri: lb://auth-service
+          predicates:
+            - Path=/service-docs/auth
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: post-service-docs
+          uri: lb://post-service
+          predicates:
+            - Path=/service-docs/posts
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: comment-service-docs
+          uri: lb://comment-service
+          predicates:
+            - Path=/service-docs/comments
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: like-service-docs
+          uri: lb://like-service
+          predicates:
+            - Path=/service-docs/likes
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: follow-service-docs
+          uri: lb://follow-service
+          predicates:
+            - Path=/service-docs/follows
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: notification-service-docs
+          uri: lb://notification-service
+          predicates:
+            - Path=/service-docs/notifications
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: media-service-docs
+          uri: lb://media-service
+          predicates:
+            - Path=/service-docs/media
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: search-service-docs
+          uri: lb://search-service
+          predicates:
+            - Path=/service-docs/search
+          filters:
+            - SetPath=/v3/api-docs
+
+        - id: chat-service-docs
+          uri: lb://chat-service
+          predicates:
+            - Path=/service-docs/chat
+          filters:
+            - SetPath=/v3/api-docs
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    urls:
+      - name: auth-service
+        url: /service-docs/auth
+      - name: post-service
+        url: /service-docs/posts
+      - name: comment-service
+        url: /service-docs/comments
+      - name: like-service
+        url: /service-docs/likes
+      - name: follow-service
+        url: /service-docs/follows
+      - name: notification-service
+        url: /service-docs/notifications
+      - name: media-service
+        url: /service-docs/media
+      - name: search-service
+        url: /service-docs/search
+      - name: chat-service
+        url: /service-docs/chat
+
 
 management:
   endpoints:

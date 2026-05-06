@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -24,6 +24,8 @@ import { buildAvatarDataUri } from '../../core/visuals';
   styleUrl: './messages.scss',
 })
 export class Messages {
+  @ViewChild('thread') private threadRef?: ElementRef<HTMLElement>;
+
   private readonly api = inject(ConnectSphereApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -33,6 +35,8 @@ export class Messages {
   private readonly realtime = inject(ChatRealtimeService);
   readonly directory = inject(UserDirectoryService);
   private readonly destroyRef = inject(DestroyRef);
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private polling = false;
 
   readonly currentUser = this.session.user;
   readonly loading = signal(true);
@@ -67,6 +71,7 @@ export class Messages {
           this.messages.update((items) =>
             items.some((item) => item.messageId === message.messageId) ? items : [...items, message],
           );
+          this.scrollThreadToBottom();
         }
       });
 
@@ -95,6 +100,15 @@ export class Messages {
       this.routeConversationId();
       void this.load();
     });
+
+    effect(() => {
+      this.activeConversationId();
+      this.messages().length;
+      this.scrollThreadToBottom();
+    });
+
+    this.startPolling();
+    this.destroyRef.onDestroy(() => this.stopPolling());
   }
 
   activeConversation(): ConversationResponse | null {
@@ -123,6 +137,7 @@ export class Messages {
     try {
       const messages = await this.api.getMessages(conversationId);
       this.messages.set(messages);
+      this.scrollThreadToBottom();
       this.realtime.connect(conversationId);
       await this.router.navigate(['/messages', conversationId], {
         queryParams: { with: null },
@@ -212,6 +227,7 @@ export class Messages {
       this.messages.update((items) =>
         items.some((item) => item.messageId === saved.messageId) ? items : [...items, saved],
       );
+      this.scrollThreadToBottom();
     } catch {
       this.draft.set(content);
       this.toast.show('Message failed', 'Could not send this message.', 'warning');
@@ -283,5 +299,78 @@ export class Messages {
     } catch {
       this.toast.show('Conversation failed', 'Could not open a direct conversation.', 'warning');
     }
+  }
+
+  private startPolling(): void {
+    if (this.pollTimer) {
+      return;
+    }
+
+    this.pollTimer = setInterval(() => {
+      void this.pollChat();
+    }, 1000);
+  }
+
+  private stopPolling(): void {
+    if (!this.pollTimer) {
+      return;
+    }
+
+    clearInterval(this.pollTimer);
+    this.pollTimer = null;
+  }
+
+  private async pollChat(): Promise<void> {
+    const currentUser = this.currentUser();
+    if (!currentUser || this.polling) {
+      return;
+    }
+
+    this.polling = true;
+    try {
+      const conversations = (await this.api.getConversations(currentUser.userId))
+        .filter((conversation) => conversation.participantOneId !== conversation.participantTwoId);
+      this.conversations.set(conversations);
+
+      const activeConversationId = this.activeConversationId();
+      if (!activeConversationId) {
+        return;
+      }
+
+      const messages = await this.api.getMessages(activeConversationId);
+      if (this.hasMessageChanges(messages)) {
+        this.messages.set(messages);
+        this.scrollThreadToBottom();
+      }
+    } catch {
+      // Polling is best-effort. Existing send/load flows still show user-facing errors.
+    } finally {
+      this.polling = false;
+    }
+  }
+
+  private hasMessageChanges(nextMessages: ChatMessageResponse[]): boolean {
+    const currentMessages = this.messages();
+    if (currentMessages.length !== nextMessages.length) {
+      return true;
+    }
+
+    return nextMessages.some((message, index) => currentMessages[index]?.messageId !== message.messageId);
+  }
+
+  private scrollThreadToBottom(): void {
+    window.setTimeout(() => {
+      const thread = this.threadRef?.nativeElement;
+      if (!thread) {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        thread.scrollTo({
+          top: thread.scrollHeight,
+          behavior: 'auto',
+        });
+      });
+    }, 0);
   }
 }
