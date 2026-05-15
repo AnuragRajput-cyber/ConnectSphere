@@ -59,6 +59,8 @@ services:
     restart: unless-stopped
     environment:
       EUREKA_SERVER_URL: http://service-registry:8761/eureka
+    ports:
+      - "127.0.0.1:8761:8761"
     networks:
       - connectsphere
 
