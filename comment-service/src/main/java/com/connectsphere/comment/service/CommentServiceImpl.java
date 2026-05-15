@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +27,7 @@ import org.springframework.web.client.RestClient;
 public class CommentServiceImpl implements CommentService {
 
     private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w{3,50})");
+    private static final String COMMENT_TARGET_TYPE = "COMMENT";
 
     private final CommentRepository commentRepository;
     private final RestClient restClient;
@@ -183,7 +185,7 @@ public class CommentServiceImpl implements CommentService {
                         "REPLY",
                         "replied to your comment",
                         parent.getCommentId(),
-                        "COMMENT",
+                        COMMENT_TARGET_TYPE,
                         null
                 ));
             }
@@ -205,7 +207,7 @@ public class CommentServiceImpl implements CommentService {
                         "MENTION",
                         "mentioned you in a comment",
                         saved.getCommentId(),
-                        "COMMENT",
+                        COMMENT_TARGET_TYPE,
                         "/post/" + saved.getPostId() + "?comment=" + saved.getCommentId()
                 ));
             } catch (RuntimeException ignored) {
@@ -239,7 +241,7 @@ public class CommentServiceImpl implements CommentService {
             return users.stream()
                     .filter(user -> username.equalsIgnoreCase(String.valueOf(user.get("username"))))
                     .map(user -> user.get("userId"))
-                    .filter(value -> value != null)
+                    .filter(Objects::nonNull)
                     .map(String::valueOf)
                     .findFirst()
                     .orElse(null);

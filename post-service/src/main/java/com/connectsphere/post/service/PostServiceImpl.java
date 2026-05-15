@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -307,7 +308,7 @@ public class PostServiceImpl implements PostService {
             return users.stream()
                     .filter(user -> username.equalsIgnoreCase(String.valueOf(user.get("username"))))
                     .map(user -> user.get("userId"))
-                    .filter(value -> value != null)
+                    .filter(Objects::nonNull)
                     .map(String::valueOf)
                     .findFirst()
                     .orElse(null);
