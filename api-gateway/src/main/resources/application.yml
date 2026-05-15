@@ -65,7 +65,7 @@ spring:
           uri: http://localhost:4200
           predicates:
             - Path=/,/feed/**,/profile/**,/explore/**,/notifications/**,/stories/**,/chat/**,/assets/**,/media/**,/favicon.ico
-                - id: auth-service-docs
+        - id: auth-service-docs
           uri: lb://auth-service
           predicates:
             - Path=/service-docs/auth
@@ -127,6 +127,7 @@ spring:
             - Path=/service-docs/chat
           filters:
             - SetPath=/v3/api-docs
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
