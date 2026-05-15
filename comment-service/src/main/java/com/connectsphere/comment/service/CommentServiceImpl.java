@@ -170,7 +170,7 @@ public class CommentServiceImpl implements CommentService {
                 notificationEventPublisher.publish(new SocialNotificationEvent(
                         postAuthorId,
                         saved.getAuthorId(),
-                        parent == null ? "COMMENT" : "REPLY",
+                        parent == null ? COMMENT_TARGET_TYPE : "REPLY",
                         parent == null ? "commented on your post" : "replied to a post you follow",
                         saved.getPostId(),
                         "POST",
