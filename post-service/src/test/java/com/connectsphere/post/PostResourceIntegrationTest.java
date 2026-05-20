@@ -35,7 +35,8 @@ class PostResourceIntegrationTest {
     void swaggerEndpointsAreAvailable() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title").value("ConnectSphere Post Service API"));
+                .andExpect(jsonPath("$.info.title").value("ConnectSphere Post Service API"))
+                .andExpect(jsonPath("$.servers[0].url").value("/"));
 
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());
