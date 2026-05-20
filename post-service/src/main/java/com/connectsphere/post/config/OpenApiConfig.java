@@ -3,6 +3,8 @@ package com.connectsphere.post.config;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +24,9 @@ public class OpenApiConfig {
                                 The generated paths remain relative so the same Swagger setup works
                                 both on the standalone service and when routed through an API gateway.
                                 """)
-                        .contact(new Contact().name("ConnectSphere Team")));
+                        .contact(new Contact().name("ConnectSphere Team")))
+                .servers(List.of(new Server()
+                        .url("/")
+                        .description("Current origin")));
     }
 }
