@@ -91,4 +91,17 @@ class MediaResourceIntegrationTest {
                         .header("X-User-Id", "user-1"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void uploadVideoMediaWorks() throws Exception {
+        MockMultipartFile video = new MockMultipartFile("file", "clip.mp4", "video/mp4", "mp4".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/media/upload")
+                        .file(video)
+                        .header("X-User-Id", "user-1")
+                        .param("uploaderId", "user-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mediaType").value("VIDEO"))
+                .andExpect(jsonPath("$.mimeType").value("video/mp4"));
+    }
 }

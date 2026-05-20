@@ -43,7 +43,7 @@
           <span>Media</span>
           <div class="upload-control">
             <label class="upload-trigger">
-              <input type="file" accept="image/*,video/*" (change)="onFileChange($event)" />
+              <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/ogg" (change)="onFileChange($event)" />
               <span>Choose file</span>
             </label>
             <span class="upload-copy">{{ selectedFile()?.name || 'No file selected' }}</span>

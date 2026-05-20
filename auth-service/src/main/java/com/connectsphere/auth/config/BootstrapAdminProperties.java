@@ -9,6 +9,6 @@ public record BootstrapAdminProperties(
         String username,
         String fullName,
         String password
-) {
+){
 }
 

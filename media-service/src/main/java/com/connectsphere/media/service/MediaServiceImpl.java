@@ -39,7 +39,7 @@ public class MediaServiceImpl implements MediaService {
 
     @Override
     public MediaResponse uploadMedia(String uploaderId, String linkedPostId, MultipartFile file) throws IOException {
-        MediaType mediaType = resolveMediaType(file.getContentType());
+        MediaType mediaType = resolveMediaType(file);
         StoredMediaAsset storedMediaAsset = mediaStorageService.store(file);
 
         Media media = new Media();
@@ -77,7 +77,7 @@ public class MediaServiceImpl implements MediaService {
         Story story = new Story();
         story.setAuthorId(authorId.trim());
         story.setCaption(caption == null || caption.isBlank() ? null : caption.trim());
-        story.setMediaType(resolveMediaType(file.getContentType()));
+        story.setMediaType(resolveMediaType(file));
         story.setMediaUrl(storedMediaAsset.publicUrl());
         story.setViewsCount(0);
         return StoryResponse.from(storyRepository.save(story));
@@ -140,18 +140,31 @@ public class MediaServiceImpl implements MediaService {
                 .orElseThrow(() -> new NotFoundException("Story not found."));
     }
 
-    private MediaType resolveMediaType(String mimeType) {
-        if (mimeType == null) {
-            throw new BadRequestException("Unsupported media type.");
-        }
-        if ("image/jpeg".equalsIgnoreCase(mimeType)
-                || "image/png".equalsIgnoreCase(mimeType)
-                || "image/webp".equalsIgnoreCase(mimeType)) {
+    private MediaType resolveMediaType(MultipartFile file) {
+        String mimeType = file.getContentType();
+        String filename = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+        if (matchesMimeOrExtension(mimeType, filename, "image/jpeg", ".jpg", ".jpeg")
+                || matchesMimeOrExtension(mimeType, filename, "image/png", ".png")
+                || matchesMimeOrExtension(mimeType, filename, "image/webp", ".webp")) {
             return MediaType.IMAGE;
         }
-        if ("video/mp4".equalsIgnoreCase(mimeType)) {
+        if (matchesMimeOrExtension(mimeType, filename, "video/mp4", ".mp4")
+                || matchesMimeOrExtension(mimeType, filename, "video/webm", ".webm")
+                || matchesMimeOrExtension(mimeType, filename, "video/ogg", ".ogg")) {
             return MediaType.VIDEO;
         }
-        throw new BadRequestException("Only JPEG, PNG, WebP images and MP4 videos are supported.");
+        throw new BadRequestException("Only JPEG, PNG, WebP images and MP4, WebM, OGG videos are supported.");
+    }
+
+    private boolean matchesMimeOrExtension(String mimeType, String filename, String expectedMimeType, String... extensions) {
+        if (mimeType != null && expectedMimeType.equalsIgnoreCase(mimeType)) {
+            return true;
+        }
+        for (String extension : extensions) {
+            if (filename.endsWith(extension)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

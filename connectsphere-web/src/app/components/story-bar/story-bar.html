@@ -18,7 +18,7 @@
           <app-ui-icon name="plus" [size]="16" />
         </span>
         <span class="story-label">{{ ownStory() ? 'Add story' : 'Your story' }}</span>
-        <input type="file" accept="image/*,video/*" (change)="upload($event)" />
+        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/ogg" (change)="upload($event)" />
       </label>
     }
 

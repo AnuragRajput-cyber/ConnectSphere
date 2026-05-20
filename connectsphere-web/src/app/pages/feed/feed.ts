@@ -610,8 +610,12 @@ export class Feed {
       );
       await this.openStory(story);
       this.toast.show('Story created', 'Your story was uploaded.', 'success');
-    } catch {
-      this.toast.show('Story failed', 'Could not create the story.', 'warning');
+    } catch (error) {
+      this.toast.show(
+        'Story failed',
+        error instanceof Error ? error.message : 'Could not create the story.',
+        'warning',
+      );
     }
   }
 

@@ -1,5 +1,6 @@
 import {
   HttpClient,
+  HttpErrorResponse,
   HttpParams,
 } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
@@ -30,6 +31,17 @@ import {
   UserProfile,
   UserSummary,
 } from './social.models';
+
+const MAX_UPLOAD_FILE_BYTES = 50 * 1024 * 1024;
+const SUPPORTED_UPLOAD_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+]);
+const SUPPORTED_UPLOAD_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.webm', '.ogg'];
 
 @Injectable({ providedIn: 'root' })
 export class ConnectSphereApiService {
@@ -515,22 +527,32 @@ export class ConnectSphereApiService {
     return firstValueFrom(this.http.post<StoryResponse>(`/api/v1/stories/${storyId}/view`, {}));
   }
 
-  createStory(authorId: string, file: File, caption: string): Promise<StoryResponse> {
+  async createStory(authorId: string, file: File, caption: string): Promise<StoryResponse> {
+    this.validateUploadFile(file);
     const formData = new FormData();
     formData.append('authorId', authorId);
     formData.append('caption', caption);
     formData.append('file', file);
-    return firstValueFrom(this.http.post<StoryResponse>('/api/v1/stories', formData));
+    try {
+      return await firstValueFrom(this.http.post<StoryResponse>('/api/v1/stories', formData));
+    } catch (error) {
+      throw this.toUploadError(error);
+    }
   }
 
-  uploadMedia(uploaderId: string, file: File, linkedPostId?: string): Promise<MediaResponse> {
+  async uploadMedia(uploaderId: string, file: File, linkedPostId?: string): Promise<MediaResponse> {
+    this.validateUploadFile(file);
     const formData = new FormData();
     formData.append('uploaderId', uploaderId);
     if (linkedPostId) {
       formData.append('linkedPostId', linkedPostId);
     }
     formData.append('file', file);
-    return firstValueFrom(this.http.post<MediaResponse>('/api/v1/media/upload', formData));
+    try {
+      return await firstValueFrom(this.http.post<MediaResponse>('/api/v1/media/upload', formData));
+    } catch (error) {
+      throw this.toUploadError(error);
+    }
   }
 
   searchPosts(query: string): Promise<PostResponse[]> {
@@ -595,5 +617,40 @@ export class ConnectSphereApiService {
 
   getPostCount(authorId: string): Promise<{ authorId: string; count: number }> {
     return firstValueFrom(this.http.get<{ authorId: string; count: number }>(`/api/v1/posts/count/${authorId}`));
+  }
+
+  private validateUploadFile(file: File): void {
+    if (file.size > MAX_UPLOAD_FILE_BYTES) {
+      throw new Error('Photos and videos must be 50 MB or smaller.');
+    }
+
+    const filename = file.name.toLowerCase();
+    const hasSupportedMimeType = !!file.type && SUPPORTED_UPLOAD_MIME_TYPES.has(file.type.toLowerCase());
+    const hasSupportedExtension = SUPPORTED_UPLOAD_EXTENSIONS.some((extension) => filename.endsWith(extension));
+
+    if (!hasSupportedMimeType && !hasSupportedExtension) {
+      throw new Error('Please upload a JPEG, PNG, WebP, MP4, WebM, or OGG file.');
+    }
+  }
+
+  private toUploadError(error: unknown): Error {
+    if (error instanceof Error && !(error instanceof HttpErrorResponse)) {
+      return error;
+    }
+
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 413) {
+        return new Error('Photos and videos must be 50 MB or smaller.');
+      }
+
+      const apiMessage = typeof error.error === 'object' && error.error && 'message' in error.error
+        ? error.error.message
+        : null;
+      if (typeof apiMessage === 'string' && apiMessage.trim()) {
+        return new Error(apiMessage.trim());
+      }
+    }
+
+    return new Error('The upload could not be completed right now. Please try again.');
   }
 }

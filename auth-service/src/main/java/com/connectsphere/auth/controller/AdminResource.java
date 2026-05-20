@@ -31,10 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Admin", description = "Admin-only user management and analytics endpoints.")
 public class AdminResource {
-
     private final UserRepository userRepository;
     private final AdminInsightsService adminInsightsService;
-
     public AdminResource(UserRepository userRepository, AdminInsightsService adminInsightsService) {
         this.userRepository = userRepository;
         this.adminInsightsService = adminInsightsService;

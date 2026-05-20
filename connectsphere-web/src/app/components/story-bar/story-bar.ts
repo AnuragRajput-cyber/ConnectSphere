@@ -55,7 +55,7 @@ export class StoryBarComponent {
   }
 
   isVideo(story: StoryResponse): boolean {
-    return story.mediaType === 'VIDEO' || /\.mp4($|\?)/i.test(story.mediaUrl);
+    return story.mediaType === 'VIDEO' || /\.(mp4|webm|ogg)($|\?)/i.test(story.mediaUrl);
   }
 
   openStory(story: StoryResponse): void {

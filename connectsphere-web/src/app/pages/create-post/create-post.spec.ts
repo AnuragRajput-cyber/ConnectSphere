@@ -96,4 +96,22 @@ describe('CreatePostPage', () => {
       targetId: 'post-1',
     }));
   });
+
+  it('shows a clear error for unsupported video files', async () => {
+    const fixture = TestBed.createComponent(CreatePostPage);
+    const component = fixture.componentInstance;
+
+    apiStub.uploadMedia.mockRejectedValueOnce(new Error('Please upload a JPEG, PNG, WebP, MP4, WebM, or OGG file.'));
+    component.selectedFile.set(new File(['video'], 'clip.mov', { type: 'video/quicktime' }));
+
+    await component.publish();
+
+    expect(apiStub.uploadMedia).toHaveBeenCalled();
+    expect(apiStub.createPost).not.toHaveBeenCalled();
+    expect(toastStub.show).toHaveBeenCalledWith(
+      'Publish failed',
+      'Please upload a JPEG, PNG, WebP, MP4, WebM, or OGG file.',
+      'warning',
+    );
+  });
 });
